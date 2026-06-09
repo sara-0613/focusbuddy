@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>FocusBuddy - AI伴走コーチ</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    :root {
+      --primary:#6C63FF; --primary-light:#EEF0FF; --secondary:#FF6B9D;
+      --accent:#FFD93D; --success:#6BCB77; --bg:#F8F7FF; --card:#FFFFFF;
+      --text:#2D2D2D; --text-muted:#8B8B9E; --border:#E8E6FF;
+      --shadow:0 4px 20px rgba(108,99,255,0.12); --radius:20px; --radius-sm:12px;
+    }
+    html,body,#root { height:100%; width:100%; overflow-x:hidden; }
+    body { font-family:'Noto Sans JP',sans-serif; background:var(--bg); color:var(--text); font-size:15px; line-height:1.6; }
+    .app { max-width:480px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column; }
+    /* HEADER */
+    .header { background:white; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
+    .header-logo { font-size:18px; font-weight:900; color:var(--primary); }
+    .header-points { display:flex; align-items:center; gap:6px; background:var(--primary-light); padding:6px 14px; border-radius:100px; font-weight:700; font-size:14px; color:var(--primary); }
+    /* BOTTOM NAV */
+    .bottom-nav { background:white; border-top:1px solid var(--border); display:flex; position:sticky; bottom:0; z-index:100; }
+    .nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:10px 4px 14px; border:none; background:none; cursor:pointer; font-size:10px; font-family:inherit; color:var(--text-muted); transition:color 0.2s; }
+    .nav-item.active { color:var(--primary); }
+    .nav-icon { font-size:22px; line-height:1; }
+    /* SCREEN */
+    .screen { flex:1; overflow-y:auto; padding:20px; padding-bottom:40px; }
+    /* HOME */
+    .home-hero { background:linear-gradient(135deg,var(--primary) 0%,#9C8FFF 100%); border-radius:var(--radius); padding:28px 24px; color:white; margin-bottom:24px; position:relative; overflow:hidden; }
+    .home-hero::after { content:'🧠'; position:absolute; right:20px; top:50%; transform:translateY(-50%); font-size:64px; opacity:0.2; }
+    .home-hero h1 { font-size:22px; font-weight:900; margin-bottom:8px; }
+    .home-hero p { font-size:13px; opacity:0.85; line-height:1.7; }
+    .home-stats-row { display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
+    .home-stat { display:flex; align-items:center; gap:4px; background:rgba(255,255,255,0.2); border-radius:100px; padding:5px 12px; font-size:13px; font-weight:700; color:white; }
+    .section-title { font-size:16px; font-weight:700; margin-bottom:14px; }
+    .goal-input-card { background:white; border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); margin-bottom:20px; }
+    .goal-input-card p { font-size:13px; color:var(--text-muted); margin-bottom:14px; }
+    .goal-examples { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px; }
+    .goal-chip { background:var(--primary-light); color:var(--primary); border:none; border-radius:100px; padding:6px 14px; font-size:12px; font-family:inherit; cursor:pointer; font-weight:500; }
+    textarea.goal-textarea { width:100%; border:2px solid var(--border); border-radius:var(--radius-sm); padding:14px; font-family:inherit; font-size:15px; resize:none; outline:none; color:var(--text); background:var(--bg); transition:border-color 0.2s; min-height:80px; }
+    textarea.goal-textarea:focus { border-color:var(--primary); }
+    .btn-primary { width:100%; background:var(--primary); color:white; border:none; border-radius:var(--radius-sm); padding:16px; font-size:16px; font-weight:700; font-family:inherit; cursor:pointer; margin-top:12px; transition:transform 0.1s, opacity 0.2s; }
+    .btn-primary:active { transform:scale(0.98); }
+    .btn-primary:disabled { opacity:0.5; cursor:not-allowed; }
+    /* TASKS */
+    .tasks-today-card { background:white; border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); }
+    .task-item { display:flex; align-items:flex-start; gap:12px; padding:14px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+    .task-item:last-child { border-bottom:none; padding-bottom:0; }
+    .task-item:first-child { padding-top:0; }
+    .task-check { width:26px; height:26px; border-radius:50%; border:2.5px solid var(--primary); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; transition:all 0.2s; }
+    .task-check.done { background:var(--success); border-color:var(--success); color:white; }
+    .task-content { flex:1; }
+    .task-title { font-size:14px; font-weight:500; line-height:1.5; }
+    .task-title.done { text-decoration:line-through; color:var(--text-muted); }
+    .task-meta { font-size:12px; color:var(--text-muted); margin-top:3px; }
+    .task-points { font-size:12px; font-weight:700; color:var(--primary); background:var(--primary-light); padding:3px 8px; border-radius:100px; flex-shrink:0; }
+    /* CHAT */
+    .chat-screen { display:flex; flex-direction:column; height:calc(100dvh - 120px); padding:0; }
+    .chat-header-info { background:white; padding:14px 20px; border-bottom:1px solid var(--border); }
+    .chat-goal-label { font-size:12px; color:var(--text-muted); }
+    .chat-goal-text { font-size:15px; font-weight:700; color:var(--primary); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .chat-messages { flex:1; overflow-y:auto; padding:16px 20px; display:flex; flex-direction:column; gap:12px; }
+    .message { display:flex; gap:10px; align-items:flex-end; animation:fadeUp 0.3s ease; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .message.user { flex-direction:row-reverse; }
+    .message-avatar { width:32px; height:32px; border-radius:50%; background:var(--primary-light); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0; }
+    .message-bubble { max-width:75%; padding:12px 16px; border-radius:18px; font-size:14px; line-height:1.6; white-space:pre-wrap; }
+    .message.assistant .message-bubble { background:white; border-bottom-left-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+    .message.user .message-bubble { background:var(--primary); color:white; border-bottom-right-radius:4px; }
+    .typing-indicator { display:flex; gap:5px; padding:14px 16px; background:white; border-radius:18px; border-bottom-left-radius:4px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+    .typing-dot { width:8px; height:8px; background:var(--primary); border-radius:50%; animation:bounce 1.2s infinite; opacity:0.4; }
+    .typing-dot:nth-child(2){animation-delay:0.2s} .typing-dot:nth-child(3){animation-delay:0.4s}
+    @keyframes bounce { 0%,100%{transform:translateY(0);opacity:0.4} 50%{transform:translateY(-5px);opacity:1} }
+    .chat-input-area { padding:12px 20px; background:white; border-top:1px solid var(--border); display:flex; gap:10px; align-items:flex-end; }
+    .chat-input { flex:1; border:2px solid var(--border); border-radius:20px; padding:10px 16px; font-family:inherit; font-size:14px; resize:none; outline:none; color:var(--text); max-height:100px; overflow-y:auto; line-height:1.5; }
+    .chat-input:focus { border-color:var(--primary); }
+    .chat-send-btn { width:44px; height:44px; border-radius:50%; background:var(--primary); color:white; border:none; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:transform 0.1s; }
+    .chat-send-btn:active { transform:scale(0.92); }
+    .chat-send-btn:disabled { opacity:0.4; cursor:not-allowed; }
+    .tasks-result-card { background:linear-gradient(135deg,#6C63FF,#9C8FFF); border-radius:var(--radius); padding:20px; color:white; margin:8px 0; width:100%; }
+    .tasks-result-card h3 { font-size:16px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+    .task-result-item { background:rgba(255,255,255,0.15); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:10px; font-size:13px; line-height:1.5; }
+    .task-result-item:last-child { margin-bottom:0; }
+    .task-result-num { font-weight:700; font-size:16px; margin-right:8px; }
+    .task-go-btn { width:100%; background:white; color:var(--primary); border:none; border-radius:var(--radius-sm); padding:14px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; margin-top:16px; transition:transform 0.1s; }
+    .task-go-btn:active { transform:scale(0.98); }
+    .quick-replies { display:flex; flex-wrap:wrap; gap:8px; padding:8px 20px 0; }
+    .quick-reply { background:var(--primary-light); color:var(--primary); border:none; border-radius:100px; padding:7px 14px; font-size:13px; font-family:inherit; cursor:pointer; font-weight:500; }
+    /* PROGRESS */
+    .level-card { background:linear-gradient(135deg,#FF6B9D,#FF8E53); border-radius:var(--radius); padding:24px; color:white; margin-bottom:20px; text-align:center; }
+    .level-badge { font-size:56px; margin-bottom:8px; display:block; }
+    .level-name { font-size:20px; font-weight:900; margin-bottom:4px; }
+    .level-num { font-size:13px; opacity:0.85; margin-bottom:16px; }
+    .xp-bar-bg { background:rgba(255,255,255,0.3); border-radius:100px; height:10px; overflow:hidden; }
+    .xp-bar { height:100%; background:white; border-radius:100px; transition:width 0.6s cubic-bezier(0.34,1.56,0.64,1); }
+    .xp-label { font-size:12px; opacity:0.85; margin-top:8px; }
+    .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px; }
+    .stat-card { background:white; border-radius:var(--radius-sm); padding:18px; box-shadow:var(--shadow); text-align:center; }
+    .stat-value { font-size:28px; font-weight:900; color:var(--primary); line-height:1.2; }
+    .stat-label { font-size:12px; color:var(--text-muted); margin-top:4px; }
+    .stamp-card { background:white; border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); margin-bottom:20px; }
+    .stamps-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+    .stamp { aspect-ratio:1; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; border:2px dashed var(--border); transition:all 0.3s; }
+    .stamp.earned { border-style:solid; border-color:var(--accent); background:#FFFBEC; transform:scale(1.05); }
+    .achievements-list { background:white; border-radius:var(--radius); padding:20px; box-shadow:var(--shadow); }
+    .achievement-item { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); }
+    .achievement-item:last-child { border-bottom:none; }
+    .achievement-icon { width:44px; height:44px; border-radius:12px; background:var(--primary-light); display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+    .achievement-icon.locked { filter:grayscale(1); opacity:0.4; }
+    .achievement-name { font-weight:700; font-size:14px; }
+    .achievement-desc { font-size:12px; color:var(--text-muted); margin-top:2px; }
+    /* CELEBRATION */
+    .celebration-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:1000; animation:fadeIn 0.2s ease; }
+    @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+    .celebration-card { background:white; border-radius:var(--radius); padding:36px 28px; text-align:center; width:85%; max-width:320px; animation:popIn 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes popIn { from{opacity:0;transform:scale(0.7)} to{opacity:1;transform:scale(1)} }
+    .celebration-emoji { font-size:64px; margin-bottom:12px; display:block; animation:wiggle 0.5s ease 0.3s; }
+    @keyframes wiggle { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-10deg)} 75%{transform:rotate(10deg)} }
+    .celebration-title { font-size:22px; font-weight:900; color:var(--primary); margin-bottom:8px; }
+    .celebration-desc { font-size:14px; color:var(--text-muted); margin-bottom:24px; line-height:1.7; white-space:pre-line; }
+    .celebration-points { font-size:36px; font-weight:900; color:var(--accent); margin-bottom:20px; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .btn-close-celebration { background:var(--primary); color:white; border:none; border-radius:var(--radius-sm); padding:14px 32px; font-size:15px; font-weight:700; font-family:inherit; cursor:pointer; }
+    /* SETUP */
+    .setup-screen { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100dvh; padding:32px 24px; text-align:center; }
+    .setup-icon { font-size:72px; margin-bottom:20px; }
+    .setup-title { font-size:24px; font-weight:900; color:var(--primary); margin-bottom:10px; }
+    .setup-desc { font-size:14px; color:var(--text-muted); line-height:1.8; margin-bottom:28px; }
+    .setup-input { width:100%; border:2px solid var(--border); border-radius:var(--radius-sm); padding:14px 16px; font-family:inherit; font-size:14px; outline:none; margin-bottom:12px; color:var(--text); }
+    .setup-input:focus { border-color:var(--primary); }
+    .setup-note { font-size:12px; color:var(--text-muted); margin-top:12px; line-height:1.7; }
+    ::-webkit-scrollbar { width:4px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+    @keyframes fall { to { transform:translateY(110vh) rotate(720deg); opacity:0; } }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const POINTS_PER_TASK = 20;
+const XP_PER_LEVEL = 100;
+const STAMP_THRESHOLD = 5;
+
+const LEVELS = [
+  { emoji:'🌱', name:'はじめの一歩' },
+  { emoji:'🌿', name:'やる気の芽' },
+  { emoji:'🌸', name:'集中の花' },
+  { emoji:'⚡', name:'フロー状態' },
+  { emoji:'🔥', name:'タスクマスター' },
+  { emoji:'💎', name:'ADHDヒーロー' },
+  { emoji:'🚀', name:'ロケット頭脳' },
+  { emoji:'🌟', name:'伝説の集中力' },
+];
+
+const GOAL_EXAMPLES = ['大学院の準備','写真を整理する','部屋を片付ける','英語の勉強','就活の準備','副業を始める'];
+
+const ACHIEVEMENTS = [
+  { id:'first',      emoji:'🎯', name:'最初の一歩',    desc:'初めてタスクを完了した',     req:1   },
+  { id:'three',      emoji:'🔥', name:'3連続完了',      desc:'3つのタスクを完了した',      req:3   },
+  { id:'ten',        emoji:'💪', name:'10タスク達成',   desc:'合計10タスクを完了した',     req:10  },
+  { id:'stamp1',     emoji:'🏅', name:'スタンプ1枚目',  desc:'5タスク完了でスタンプ獲得',  req:5   },
+  { id:'points100',  emoji:'💯', name:'100ポイント',    desc:'合計100ポイント獲得',        req:100, isPoints:true },
+  { id:'level3',     emoji:'⚡', name:'フロー到達',     desc:'レベル4に到達した',          req:4,   isLevel:true  },
+];
+
+const STORAGE_KEY = 'focusbuddy_data_v1';
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { points:0, totalTasksDone:0, currentGoal:null, tasks:[], chatHistory:[], streak:0, lastActivityDate:null, monthlyPoints:{} };
+}
+function saveData(d) { localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }
+function getLevel(pts) { return Math.min(Math.floor(pts/XP_PER_LEVEL), LEVELS.length-1); }
+function getLevelInfo(pts) { const l=getLevel(pts); return {...LEVELS[l], level:l}; }
+function todayStr() { return new Date().toISOString().slice(0,10); }
+function calcStreak(prev) {
+  const today = todayStr();
+  if (prev.lastActivityDate === today) return { streak: prev.streak||0, lastActivityDate: today };
+  const yesterday = new Date(Date.now()-86400000).toISOString().slice(0,10);
+  return { streak: prev.lastActivityDate===yesterday ? (prev.streak||0)+1 : 1, lastActivityDate: today };
+}
+function getMonthlyPoints(data) {
+  const month = todayStr().slice(0,7);
+  return (data.monthlyPoints||{})[month] || 0;
+}
+function addMonthlyPoints(data, pts) {
+  const month = todayStr().slice(0,7);
+  const mp = {...(data.monthlyPoints||{})};
+  mp[month] = (mp[month]||0) + pts;
+  return mp;
+}
+
+function buildSystemPrompt(goal) {
+  return `あなたはADHDや先延ばし癖のある人を優しく伴走するAIコーチ「バディ」です。
+
+ユーザーのゴール: 「${goal}」
+
+あなたの役割:
+1. まずゴールについて1〜2の簡単な質問をして状況を把握する（一度に1問だけ！）
+2. 十分な情報が集まったら、今日できる小さなタスク3つに分解する
+3. タスクは具体的・簡単・5〜30分でできるものにする
+
+コーチングスタイル:
+- 絵文字を適度に使って明るく！
+- 短い文で。長い説明は避ける
+- 批判や否定は絶対しない
+- 「できそう！」と思えるタスクを提案する
+- ADHDの特性（過集中・先延ばし・衝動性）を理解している
+
+タスクが決まったら必ずこのフォーマットで返してください（励ましの一言の後に）:
+TASKS_JSON:{"tasks":[{"title":"タスク名","duration":"5分","emoji":"🎯"},{"title":"タスク名","duration":"15分","emoji":"📝"},{"title":"タスク名","duration":"10分","emoji":"✅"}]}`;
+}
+
+// Confetti
+function Confetti({ onDone }) {
+  useEffect(() => { const t=setTimeout(onDone,2500); return ()=>clearTimeout(t); }, []);
+  const pieces = Array.from({length:28},(_,i)=>({
+    id:i, x:Math.random()*100,
+    color:['#6C63FF','#FF6B9D','#FFD93D','#6BCB77','#FF8E53'][i%5],
+    delay:Math.random()*0.5, size:8+Math.random()*8,
+  }));
+  return (
+    <div style={{position:'fixed',inset:0,pointerEvents:'none',zIndex:1001,overflow:'hidden'}}>
+      {pieces.map(p=>(
+        <div key={p.id} style={{
+          position:'absolute', left:`${p.x}%`, top:'-20px',
+          width:p.size, height:p.size, background:p.color,
+          borderRadius:Math.random()>0.5?'50%':'2px',
+          animation:`fall 2s ${p.delay}s ease-in forwards`,
+        }}/>
+      ))}
+    </div>
+  );
+}
+
+// Celebration
+function CelebrationModal({ type, points, onClose }) {
+  const [showConfetti, setShowConfetti] = useState(true);
+  const cfg = {
+    task:     {emoji:'🎉', title:'タスク完了！',   desc:'素晴らしい！一歩前進したね'},
+    allTasks: {emoji:'🏆', title:'全部クリア！',   desc:'今日のタスクを全部終わらせた！\n本当によく頑張ったね！'},
+    levelUp:  {emoji:'⬆️', title:'レベルアップ！', desc:'新しいレベルに到達したよ！\nこの調子で続けよう！'},
+    stamp:    {emoji:'🏅', title:'スタンプゲット！',desc:'5タスク達成でスタンプを獲得！\nコレクションが増えたよ！'},
+  }[type] || {emoji:'🎉',title:'やった！',desc:'よく頑張ったね！'};
+  return (
+    <>
+      {showConfetti && <Confetti onDone={()=>setShowConfetti(false)}/>}
+      <div className="celebration-overlay" onClick={onClose}>
+        <div className="celebration-card" onClick={e=>e.stopPropagation()}>
+          <span className="celebration-emoji">{cfg.emoji}</span>
+          <div className="celebration-title">{cfg.title}</div>
+          <div className="celebration-desc">{cfg.desc}</div>
+          <div className="celebration-points">+{points} <span style={{fontSize:20}}>✨</span></div>
+          <button className="btn-close-celebration" onClick={onClose}>やった！</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// Home
+function HomeScreen({ data, onStartGoal, onCompleteTask }) {
+  const [goalText, setGoalText] = useState('');
+  const hasTasks = data.tasks.length > 0;
+  const doneTasks = data.tasks.filter(t=>t.done);
+  const lvInfo = getLevelInfo(data.points);
+  const progressPct = hasTasks ? Math.round((doneTasks.length/data.tasks.length)*100) : 0;
+
+  return (
+    <div className="screen">
+      <div className="home-hero">
+        <h1>今日も一緒に頑張ろう 💜</h1>
+        <p>大きな夢も、小さな一歩から。<br/>今日やることを3つに絞ろう！</p>
+        <div className="home-stats-row">
+          <div className="home-stat">{lvInfo.emoji} Lv.{lvInfo.level+1}</div>
+          <div className="home-stat">✨ {data.points}pt</div>
+          <div className="home-stat">🔥 {data.streak||0}日連続</div>
+          {hasTasks && <div className="home-stat">📊 {progressPct}%</div>}
+        </div>
+      </div>
+
+      {!hasTasks && (
+        <div className="goal-input-card">
+          <p>達成したいことを教えて。一緒に今日のタスクに分解するよ！</p>
+          <div className="goal-examples">
+            {GOAL_EXAMPLES.map(ex=>(
+              <button key={ex} className="goal-chip" onClick={()=>setGoalText(ex)}>{ex}</button>
+            ))}
+          </div>
+          <textarea
+            className="goal-textarea"
+            placeholder="例：大学院の準備をしたい、部屋を片付けたい..."
+            value={goalText}
+            onChange={e=>setGoalText(e.target.value)}
+            rows={3}
+          />
+          <button className="btn-primary" disabled={!goalText.trim()} onClick={()=>onStartGoal(goalText)}>
+            AIコーチに相談する 💬
+          </button>
+        </div>
+      )}
+
+      {hasTasks && (
+        <div style={{marginBottom:20}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+            <span className="section-title" style={{margin:0}}>今日のタスク</span>
+            <span style={{fontSize:13,color:'var(--primary)',fontWeight:700}}>
+              {doneTasks.length} / {data.tasks.length} 完了
+            </span>
+          </div>
+          <div style={{background:'var(--bg)',borderRadius:'var(--radius-sm)',height:6,overflow:'hidden',marginBottom:16}}>
+            <div style={{height:'100%',background:'var(--primary)',borderRadius:'var(--radius-sm)',width:`${data.tasks.length>0?(doneTasks.length/data.tasks.length)*100:0}%`,transition:'width 0.4s ease'}}/>
+          </div>
+          <div className="tasks-today-card">
+            {data.tasks.map(task=>(
+              <div className="task-item" key={task.id} onClick={()=>!task.done&&onCompleteTask(task.id)}>
+                <div className={`task-check ${task.done?'done':''}`}>{task.done?'✓':''}</div>
+                <div className="task-content">
+                  <div className={`task-title ${task.done?'done':''}`}>{task.emoji} {task.title}</div>
+                  <div className="task-meta">⏱ {task.duration}</div>
+                </div>
+                {!task.done&&<span className="task-points">+{POINTS_PER_TASK}pt</span>}
+              </div>
+            ))}
+          </div>
+          <button
+            className="btn-primary"
+            style={{background:'white',color:'var(--primary)',border:'2px solid var(--primary)',marginTop:16}}
+            onClick={()=>onStartGoal('')}
+          >新しい目標を設定する</button>
+        </div>
+      )}
+
+      {hasTasks && data.currentGoal && (
+        <div style={{background:'white',borderRadius:'var(--radius-sm)',padding:'14px 16px',boxShadow:'var(--shadow)'}}>
+          <div style={{fontSize:11,color:'var(--text-muted)',marginBottom:4}}>現在の目標</div>
+          <div style={{fontSize:14,fontWeight:700,color:'var(--primary)'}}>🎯 {data.currentGoal}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Chat
+function ChatScreen({ goal, onTasksCreated }) {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [quickReplies, setQuickReplies] = useState([]);
+  const messagesEndRef = useRef(null);
+  const initialized = useRef(false);
+  const historyRef = useRef([]);
+
+  useEffect(()=>{ messagesEndRef.current?.scrollIntoView({behavior:'smooth'}); }, [messages,loading]);
+
+  const sendToAI = useCallback(async (userMessage) => {
+    setLoading(true);
+    setQuickReplies([]);
+    if (userMessage) {
+      historyRef.current = [...historyRef.current, {role:'user',content:userMessage}];
+    }
+    try {
+      const resp = await fetch('/api/chat', {
+        method:'POST',
+        headers:{ 'content-type':'application/json' },
+        body: JSON.stringify({
+          system: buildSystemPrompt(goal),
+          messages: historyRef.current,
+        }),
+      });
+      const json = await resp.json();
+      const text = json.content?.[0]?.text || 'エラーが発生しました。';
+
+      const jsonMatch = text.match(/TASKS_JSON:(\{[\s\S]*?\})\s*$/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[1]);
+          const cleanText = text.replace(/TASKS_JSON:[\s\S]*$/, '').trim();
+          historyRef.current = [...historyRef.current, {role:'assistant',content:text}];
+          setMessages(prev=>[...prev, {role:'assistant',content:cleanText,tasks:parsed.tasks}]);
+        } catch {
+          historyRef.current = [...historyRef.current, {role:'assistant',content:text}];
+          setMessages(prev=>[...prev, {role:'assistant',content:text}]);
+        }
+      } else {
+        historyRef.current = [...historyRef.current, {role:'assistant',content:text}];
+        setMessages(prev=>[...prev, {role:'assistant',content:text}]);
+        if (historyRef.current.length < 6) {
+          setQuickReplies(['今日から始めたい','週末に向けて準備したい','まず5分だけやってみたい']);
+        }
+      }
+    } catch(err) {
+      setMessages(prev=>[...prev, {role:'assistant',content:'ごめんね、少し調子が悪いみたい😢\nAPIキーを確認してもう一度試してみて！'}]);
+    } finally {
+      setLoading(false);
+    }
+  }, [goal]);
+
+  useEffect(()=>{
+    if (initialized.current) return;
+    initialized.current = true;
+    const opening = {role:'user',content:`ゴール: ${goal}`};
+    historyRef.current = [opening];
+    setMessages([{role:'assistant',content:`「${goal}」、いいね！✨\n一緒に今日できることを見つけよう！\n\nまず教えて、今この目標に対してどのくらい準備できてる？（全然・少し・ある程度）`}]);
+    sendToAI(null);
+  }, []);
+
+  const send = useCallback(async (text) => {
+    const msg = (text||input).trim();
+    if (!msg || loading) return;
+    setInput('');
+    setMessages(prev=>[...prev, {role:'user',content:msg}]);
+    await sendToAI(msg);
+  }, [input, loading, sendToAI]);
+
+  return (
+    <div className="chat-screen">
+      {goal && (
+        <div className="chat-header-info">
+          <div className="chat-goal-label">目標</div>
+          <div className="chat-goal-text">🎯 {goal}</div>
+        </div>
+      )}
+      <div className="chat-messages">
+        {messages.map((msg,i)=>(
+          <div key={i} className={`message ${msg.role}`}>
+            {msg.role==='assistant' && <div className="message-avatar">🤖</div>}
+            <div style={{maxWidth:'80%'}}>
+              {msg.content && <div className="message-bubble">{msg.content}</div>}
+              {msg.tasks && (
+                <div className="tasks-result-card">
+                  <h3>🎯 今日の3つのタスク</h3>
+                  {msg.tasks.map((t,j)=>(
+                    <div className="task-result-item" key={j}>
+                      <span className="task-result-num">{j+1}.</span>
+                      {t.emoji} {t.title}
+                      <div style={{fontSize:11,opacity:0.8,marginTop:4}}>⏱ {t.duration}</div>
+                    </div>
+                  ))}
+                  <button className="task-go-btn" onClick={()=>onTasksCreated(msg.tasks,goal)}>
+                    これでスタート！ 🚀
+                  </button>
+                </div>
+              )}
+            </div>
+            {msg.role==='user' && <div className="message-avatar" style={{background:'#F0F0FF'}}>👤</div>}
+          </div>
+        ))}
+        {loading && (
+          <div className="message assistant">
+            <div className="message-avatar">🤖</div>
+            <div className="typing-indicator">
+              <div className="typing-dot"/><div className="typing-dot"/><div className="typing-dot"/>
+            </div>
+          </div>
+        )}
+        <div ref={messagesEndRef}/>
+      </div>
+      {quickReplies.length>0 && !loading && (
+        <div className="quick-replies">
+          {quickReplies.map(qr=>(
+            <button key={qr} className="quick-reply" onClick={()=>send(qr)}>{qr}</button>
+          ))}
+        </div>
+      )}
+      <div className="chat-input-area">
+        <textarea
+          className="chat-input"
+          placeholder="返信する..."
+          value={input}
+          onChange={e=>setInput(e.target.value)}
+          rows={1}
+          onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}}}
+        />
+        <button className="chat-send-btn" onClick={()=>send()} disabled={!input.trim()||loading}>➤</button>
+      </div>
+    </div>
+  );
+}
+
+// Progress
+function ProgressScreen({ data }) {
+  const lvInfo = getLevelInfo(data.points);
+  const xpPct = (data.points % XP_PER_LEVEL) / XP_PER_LEVEL * 100;
+  const stamps = Math.floor(data.totalTasksDone / STAMP_THRESHOLD);
+  const stampProg = data.totalTasksDone % STAMP_THRESHOLD;
+
+  return (
+    <div className="screen">
+      <div className="level-card">
+        <span className="level-badge">{lvInfo.emoji}</span>
+        <div className="level-name">{lvInfo.name}</div>
+        <div className="level-num">レベル {lvInfo.level + 1}</div>
+        <div className="xp-bar-bg">
+          <div className="xp-bar" style={{width:`${xpPct}%`}}/>
+        </div>
+        <div className="xp-label">{data.points % XP_PER_LEVEL} / {XP_PER_LEVEL} XP</div>
+      </div>
+
+      <div className="stats-grid">
+        {[
+          {v:data.points,          l:'合計ポイント ✨'},
+          {v:getMonthlyPoints(data),l:'今月のポイント 📅'},
+          {v:data.totalTasksDone,  l:'完了タスク 🎯'},
+          {v:data.streak||0,       l:'連続達成日数 🔥'},
+          {v:stamps,               l:'スタンプ 🏅'},
+          {v:lvInfo.level+1,       l:'現在のレベル ⬆️'},
+        ].map(s=>(
+          <div key={s.l} className="stat-card">
+            <div className="stat-value">{s.v}</div>
+            <div className="stat-label">{s.l}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="stamp-card">
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+          <span className="section-title" style={{margin:0}}>スタンプカード 🏅</span>
+          <span style={{fontSize:11,color:'var(--text-muted)'}}>{stampProg}/5で次のスタンプ</span>
+        </div>
+        <div className="stamps-grid">
+          {Array.from({length:10},(_,i)=>(
+            <div key={i} className={`stamp ${i<stamps?'earned':''}`}>{i<stamps?'⭐':''}</div>
+          ))}
+        </div>
+        <div style={{marginTop:12}}>
+          <div style={{background:'var(--bg)',borderRadius:100,height:8,overflow:'hidden'}}>
+            <div style={{height:'100%',background:'var(--accent)',borderRadius:100,width:`${(stampProg/STAMP_THRESHOLD)*100}%`,transition:'width 0.4s ease'}}/>
+          </div>
+          <div style={{fontSize:12,color:'var(--text-muted)',marginTop:6}}>あと{STAMP_THRESHOLD-stampProg}タスクで⭐スタンプ獲得！</div>
+        </div>
+      </div>
+
+      <div className="achievements-list">
+        <div className="section-title">実績</div>
+        {ACHIEVEMENTS.map(a=>{
+          const ok = a.isPoints
+            ? data.points >= a.req
+            : a.isLevel
+            ? (getLevel(data.points)+1) >= a.req
+            : data.totalTasksDone >= a.req;
+          return (
+            <div className="achievement-item" key={a.id}>
+              <div className={`achievement-icon ${!ok?'locked':''}`}>{a.emoji}</div>
+              <div>
+                <div className="achievement-name">{a.name}</div>
+                <div className="achievement-desc">{a.desc}</div>
+              </div>
+              {ok && <span style={{marginLeft:'auto',fontSize:12,color:'var(--success)',fontWeight:700}}>解除済み</span>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Main App
+function App() {
+  const [data, setData] = useState(loadData);
+  const [tab, setTab] = useState('home');
+  const [chatGoal, setChatGoal] = useState('');
+  const [celebration, setCelebration] = useState(null);
+
+  const updateData = useCallback((updates) => {
+    setData(prev => { const n={...prev,...updates}; saveData(n); return n; });
+  }, []);
+
+  const handleStartGoal = (goal) => {
+    setChatGoal(goal.trim());
+    setTab('chat');
+  };
+
+  const handleTasksCreated = (tasks, goal) => {
+    const newTasks = tasks.map((t,i)=>({
+      id: Date.now()+i, title:t.title, duration:t.duration,
+      emoji:t.emoji||'📌', done:false,
+    }));
+    updateData({tasks:newTasks, currentGoal:goal});
+    setTab('home');
+  };
+
+  const handleCompleteTask = (taskId) => {
+    setData(prev => {
+      const updatedTasks = prev.tasks.map(t=>t.id===taskId?{...t,done:true}:t);
+      const newPts = prev.points + POINTS_PER_TASK;
+      const newTotal = prev.totalTasksDone + 1;
+      const allDone = updatedTasks.every(t=>t.done);
+      const lvBefore = getLevel(prev.points);
+      const lvAfter = getLevel(newPts);
+      const stBefore = Math.floor(prev.totalTasksDone/STAMP_THRESHOLD);
+      const stAfter = Math.floor(newTotal/STAMP_THRESHOLD);
+      const streakUpdate = calcStreak(prev);
+      const newMonthlyPoints = addMonthlyPoints(prev, POINTS_PER_TASK);
+      const next = {...prev, tasks:updatedTasks, points:newPts, totalTasksDone:newTotal, ...streakUpdate, monthlyPoints:newMonthlyPoints};
+      saveData(next);
+      if (allDone)           setTimeout(()=>setCelebration({type:'allTasks',points:POINTS_PER_TASK}),300);
+      else if (lvAfter>lvBefore)  setTimeout(()=>setCelebration({type:'levelUp',points:POINTS_PER_TASK}),300);
+      else if (stAfter>stBefore)  setTimeout(()=>setCelebration({type:'stamp',points:POINTS_PER_TASK}),300);
+      else                        setTimeout(()=>setCelebration({type:'task',points:POINTS_PER_TASK}),200);
+      return next;
+    });
+  };
+
+  return (
+    <div className="app">
+      <div className="header">
+        <span className="header-logo">🧠 FocusBuddy</span>
+        <div className="header-points">✨ {data.points}pt</div>
+      </div>
+
+      {tab==='home'     && <HomeScreen data={data} onStartGoal={handleStartGoal} onCompleteTask={handleCompleteTask}/>}
+      {tab==='chat'     && <ChatScreen goal={chatGoal} onTasksCreated={handleTasksCreated}/>}
+      {tab==='progress' && <ProgressScreen data={data}/>}
+
+      <nav className="bottom-nav">
+        {[
+          {id:'home',icon:'🏠',label:'ホーム'},
+          {id:'chat',icon:'💬',label:'コーチ'},
+          {id:'progress',icon:'📊',label:'進捗'},
+        ].map(n=>(
+          <button
+            key={n.id}
+            className={`nav-item ${tab===n.id?'active':''}`}
+            onClick={()=>{ if(n.id==='chat')setChatGoal(''); setTab(n.id); }}
+          >
+            <span className="nav-icon">{n.icon}</span>
+            {n.label}
+          </button>
+        ))}
+      </nav>
+
+      {celebration && (
+        <CelebrationModal type={celebration.type} points={celebration.points} onClose={()=>setCelebration(null)}/>
+      )}
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App/>);
+</script>
+</body>
+</html>
