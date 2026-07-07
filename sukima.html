@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>スキマ</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    :root{
+      --primary:#A78BFA;--pl:#EDE9FE;--bg:#FBF8FF;--card:#fff;
+      --text:#4B4569;--muted:#A09AB8;--border:#EDE9FE;
+      --shadow:0 2px 16px rgba(167,139,250,.12);--r:18px;--rs:12px;
+    }
+    html,body,#root{height:100%;overflow-x:hidden}
+    body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+    .app{max-width:480px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column}
+
+    /* Header */
+    .hdr{background:linear-gradient(135deg,#C4B5FD,#F9A8D4);padding:13px 18px 11px;color:#fff;position:sticky;top:0;z-index:100}
+    .hdr-row{display:flex;justify-content:space-between;align-items:center}
+    .hdr-title{font-size:19px;font-weight:900;display:flex;align-items:center;gap:7px}
+    .hdr-sub{font-size:11px;opacity:.85;margin-top:2px}
+    .hdr-badge{background:rgba(255,255,255,.3);border-radius:100px;padding:4px 11px;font-size:11px;font-weight:700}
+
+    /* Nav */
+    .bnav{background:#fff;border-top:1px solid var(--border);display:flex;position:sticky;bottom:0;z-index:100}
+    .ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 4px 13px;border:none;background:none;cursor:pointer;font-size:10px;font-family:inherit;color:var(--muted)}
+    .ni.on{color:var(--primary)}
+    .ni-icon{font-size:21px;display:flex;align-items:center;justify-content:center}
+
+    /* Screen */
+    .screen{flex:1;overflow-y:auto;padding:14px 14px 90px}
+
+    /* ── MONTHLY CALENDAR ── */
+    .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .cal-nav-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--primary);padding:4px 10px}
+    .cal-month{font-size:17px;font-weight:900;color:var(--text)}
+    .cal-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:4px}
+    .cal-dow-cell{text-align:center;font-size:11px;font-weight:700;padding:4px 0;color:var(--muted)}
+    .cal-dow-cell:first-child{color:#F87171}
+    .cal-dow-cell:last-child{color:#60A5FA}
+    .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+    .cal-cell{min-height:56px;display:flex;flex-direction:column;align-items:stretch;padding:4px 2px 3px;border-radius:8px;cursor:pointer;position:relative}
+    .cal-cell:active{background:var(--pl)}
+    .cal-cell.other{opacity:.3}
+    .cal-cell.today .cal-num{background:var(--primary);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin:0 auto}
+    .cal-cell.selected{background:var(--pl)}
+    .cal-cell.selected .cal-num{color:var(--primary);font-weight:900}
+    .cal-num{font-size:12px;font-weight:500;line-height:1;text-align:center;margin-bottom:3px}
+    .cal-num.sun{color:#F87171}
+    .cal-num.sat{color:#60A5FA}
+    .cal-ev{font-size:9px;font-weight:700;border-radius:3px;padding:1px 3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
+    .cal-more{font-size:8px;color:var(--muted);text-align:center}
+
+    /* ── DAY VIEW ── */
+    .day-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+    .back-btn{background:none;border:none;font-size:22px;cursor:pointer;color:var(--primary);padding:2px}
+    .day-title{font-size:16px;font-weight:900}
+    .day-badge{margin-left:auto;background:var(--pl);color:var(--primary);border-radius:100px;padding:3px 10px;font-size:11px;font-weight:700}
+
+    .summary-card{background:linear-gradient(135deg,#C4B5FD,#F9A8D4);border-radius:var(--r);padding:14px 16px;color:#fff;margin-bottom:14px}
+    .sum-label{font-size:11px;opacity:.8;margin-bottom:3px}
+    .sum-val{font-size:22px;font-weight:900}
+    .sum-sub{font-size:12px;opacity:.8;margin-left:5px;font-weight:400}
+    .slot-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+    .slot-chip{background:rgba(255,255,255,.2);border-radius:100px;padding:2px 9px;font-size:10px}
+
+    /* Timeline */
+    .tl-wrap{display:flex}
+    .tl-hours{width:40px;position:relative;flex-shrink:0}
+    .tl-hlabel{position:absolute;right:5px;font-size:9px;color:#9E9E9E;font-weight:500;transform:translateY(-6px)}
+    .tl-events{flex:1;position:relative;border-left:2px solid #E0E0E0}
+    .tl-hline{position:absolute;left:0;right:0;border-top:1px solid #F0F0F0;pointer-events:none}
+    .tl-hline.maj{border-top-color:#E0E0E0;border-top-width:1.5px}
+    .tl-now{position:absolute;left:-6px;right:0;border-top:2px solid #F9A8D4;z-index:20;pointer-events:none}
+    .tl-now::before{content:'';position:absolute;left:-3px;top:-5px;width:8px;height:8px;background:#F9A8D4;border-radius:50%}
+    .block{position:absolute;left:3px;right:3px;border-radius:7px;padding:4px 7px;overflow:hidden;z-index:10;cursor:pointer}
+    .block-name{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .block-time{font-size:9px;margin-top:1px;opacity:.75}
+    .free-slot{position:absolute;left:3px;right:3px;border-radius:7px;background:#F0FDF4;border:1.5px dashed #86EFAC;overflow:hidden;z-index:5;padding:4px 7px}
+    .free-label{font-size:9px;color:#6EAF84;font-weight:700}
+    .free-sugs{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}
+    .free-chip{background:#fff;border:1px solid #86EFAC;border-radius:100px;padding:2px 8px;font-size:9px;color:#5A9E72;cursor:pointer;font-family:inherit;line-height:1.4}
+    .free-chip:active{background:#DCFCE7}
+    .free-log-btn{background:none;border:none;font-size:8px;color:#86EFAC;cursor:pointer;font-family:inherit;padding:2px 0;margin-top:2px;display:flex;align-items:center;gap:2px;font-weight:700}
+
+    /* Countdown banner */
+    .countdown-card{background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-radius:var(--rs);padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+    .cd-days{font-size:26px;font-weight:900;color:#92400E;line-height:1}
+    .cd-unit{font-size:10px;color:#92400E;opacity:.75;font-weight:700}
+    .cd-name{font-size:12px;font-weight:700;color:#78350F;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .cd-date{font-size:10px;color:#A16207;margin-top:2px}
+    .cd-icon{font-size:22px;flex-shrink:0}
+
+    /* Log modal sections */
+    .log-section{margin-bottom:14px}
+    .log-section-title{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:7px}
+    .task-chips{display:flex;flex-wrap:wrap;gap:6px}
+    .task-chip{padding:6px 11px;border-radius:100px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;transition:all .1s}
+    .task-chip.on{border-color:var(--primary);background:var(--pl);color:var(--primary)}
+    .task-chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    .dur-row{display:flex;align-items:center;gap:10px}
+    .dur-btn{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)}
+    .dur-num{font-size:26px;font-weight:900;color:var(--text);min-width:52px;text-align:center}
+    .dur-unit{font-size:12px;color:var(--muted)}
+
+    /* Task list */
+    .list{display:flex;flex-direction:column;gap:9px}
+    .tcard{background:#fff;border-radius:var(--rs);padding:12px 13px;box-shadow:var(--shadow);display:flex;align-items:center;gap:10px}
+    .cdot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+    .tname{font-size:13px;font-weight:700}
+    .tmeta{font-size:10px;color:var(--muted);margin-top:3px}
+    .pbadge{font-size:10px;padding:2px 8px;border-radius:100px;font-weight:700;flex-shrink:0}
+    .dbtn{background:none;border:none;color:#BDBDBD;font-size:18px;cursor:pointer;padding:4px;line-height:1;flex-shrink:0}
+    .dbtn:active{color:#EF5350}
+    .ebtn{background:none;border:none;cursor:pointer;padding:3px;line-height:0;flex-shrink:0;opacity:.7;transition:opacity .15s}
+    .ebtn:active{opacity:1}
+    .check-box{width:22px;height:22px;border-radius:6px;border:2px solid #E0D7F7;background:#fff;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+    .check-box.done{background:var(--primary);border-color:var(--primary);color:#fff}
+    .tcard.done-card{opacity:.65}
+
+    /* Stats screen */
+    .stats-hero{background:linear-gradient(135deg,#C4B5FD,#F9A8D4);border-radius:var(--r);padding:18px 18px 16px;color:#fff;margin-bottom:14px}
+    .stats-hero-label{font-size:11px;opacity:.8;margin-bottom:2px}
+    .stats-hero-row{display:flex;align-items:flex-end;gap:6px}
+    .stats-hero-num{font-size:36px;font-weight:900;line-height:1}
+    .stats-hero-unit{font-size:13px;opacity:.85;padding-bottom:5px}
+    .stats-hero-sub{font-size:12px;opacity:.8;margin-top:5px}
+    .stats-cards{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+    .stat-card{background:#fff;border-radius:var(--rs);padding:13px 14px;box-shadow:var(--shadow)}
+    .stat-card-icon{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+    .stat-card-val{font-size:22px;font-weight:900;color:var(--text)}
+    .stat-card-label{font-size:10px;color:var(--muted);margin-top:2px}
+    .section-title{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px;margin-top:4px;letter-spacing:.05em}
+    .cat-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+    .cat-bar-label{font-size:11px;font-weight:700;width:48px;flex-shrink:0;color:var(--text)}
+    .cat-bar-bg{flex:1;height:7px;background:#F0EEFF;border-radius:100px;overflow:hidden}
+    .cat-bar-fill{height:100%;border-radius:100px;transition:width .4s}
+    .cat-bar-count{font-size:10px;color:var(--muted);width:24px;text-align:right;flex-shrink:0}
+    .done-list{display:flex;flex-direction:column;gap:6px}
+    .done-item{background:#fff;border-radius:var(--rs);padding:10px 12px;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
+    .done-item-date{font-size:10px;color:var(--muted);width:36px;flex-shrink:0}
+    .done-item-name{font-size:12px;font-weight:700;flex:1;min-width:0}
+    .done-item-dur{font-size:10px;color:var(--muted)}
+    .dow-badges{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
+    .dow-badge{font-size:9px;padding:1px 5px;border-radius:4px;font-weight:700}
+
+    /* FAB */
+    .fab{position:fixed;bottom:72px;right:calc(50% - 226px);width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#C4B5FD,#F9A8D4);color:#fff;border:none;font-size:25px;cursor:pointer;box-shadow:0 4px 16px rgba(167,139,250,.35);display:flex;align-items:center;justify-content:center;z-index:200}
+    @media(max-width:480px){.fab{right:14px}}
+    .fab:active{transform:scale(.93)}
+
+    /* Modal */
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,.42);z-index:300;display:flex;align-items:flex-end;animation:fi .18s}
+    .modal{background:#fff;border-radius:22px 22px 0 0;padding:20px 16px 32px;width:100%;max-height:92dvh;overflow-y:auto;animation:su .28s cubic-bezier(.34,1.4,.64,1)}
+    @keyframes fi{from{opacity:0}to{opacity:1}}
+    @keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .mtitle{font-size:16px;font-weight:900;color:var(--primary);margin-bottom:16px}
+    .tab-row{display:flex;background:var(--bg);border-radius:var(--rs);padding:3px;margin-bottom:16px}
+    .tabbtn{flex:1;padding:7px;border:none;background:none;border-radius:8px;font-family:inherit;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer}
+    .tabbtn.on{background:#fff;color:var(--primary);box-shadow:0 2px 6px rgba(0,0,0,.1)}
+    .fg{margin-bottom:13px}
+    .fl{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:5px;display:block}
+    .fi{width:100%;border:2px solid var(--border);border-radius:var(--rs);padding:10px 12px;font-family:inherit;font-size:14px;outline:none;color:var(--text)}
+    .fi:focus{border-color:var(--primary)}
+    .fi-sm{padding:8px 10px;font-size:13px}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .hint{background:var(--pl);border-radius:8px;padding:8px 11px;margin-top:6px;font-size:11px;color:var(--primary)}
+    .chips{display:flex;flex-wrap:wrap;gap:5px}
+    .chip{padding:5px 10px;border-radius:100px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:500;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px}
+    .chip.on{border-color:var(--primary);background:var(--pl);color:var(--primary)}
+    .dow-chips{display:flex;gap:4px}
+    .dow-chip{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
+    .dow-chip.on{border-color:var(--primary);background:var(--primary);color:#fff}
+    .dow-chip.sun.on{border-color:#F87171;background:#F87171}
+    .dow-chip.sat.on{border-color:#60A5FA;background:#60A5FA}
+    .btn-add{width:100%;background:var(--primary);color:#fff;border:none;border-radius:var(--rs);padding:13px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:6px}
+    .btn-add:active{opacity:.9}
+    .btn-cancel{width:100%;background:var(--bg);color:var(--muted);border:none;border-radius:var(--rs);padding:11px;font-size:13px;font-family:inherit;cursor:pointer;margin-top:6px}
+    .empty{text-align:center;padding:44px 20px;color:var(--muted)}
+    .empty-icon{font-size:42px;margin-bottom:10px}
+    .empty-text{font-size:13px;line-height:1.9}
+    ::-webkit-scrollbar{width:3px}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
+
+// ===== ICONS =====
+const IS={display:'inline-flex',alignItems:'center',verticalAlign:'middle',flexShrink:0};
+function IcoPin({c='var(--primary)',s=15}){return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <path d="M12 2C8.7 2 6 4.7 6 8c0 5 6 14 6 14s6-9 6-14c0-3.3-2.7-6-6-6z" fill={c+'44'} stroke={c} strokeWidth="1.6"/>
+    <circle cx="12" cy="8" r="2.5" fill={c}/>
+  </svg>
+);}
+function IcoSparkle({c='#6EAF84',s=11}){return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <path d="M12 2l2 8 8 2-8 2-2 8-2-8-8-2 8-2z" fill={c}/>
+  </svg>
+);}
+function IcoLamp({c='var(--primary)',s=15}){return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <path d="M12 2C8.7 2 6 4.7 6 8c0 2.4 1.3 4.5 3 5.7V16h6v-2.3c1.7-1.2 3-3.3 3-5.7 0-3.3-2.7-6-6-6z" fill={c+'30'} stroke={c} strokeWidth="1.5"/>
+    <path d="M9 17h6M10 19h4" stroke={c} strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);}
+function IcoTimerSvg({c='var(--primary)',s=17}){return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <circle cx="12" cy="13" r="8" fill={c+'22'} stroke={c} strokeWidth="1.7"/>
+    <path d="M12 9v4l3 2" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9 2h6M12 2v3" stroke={c} strokeWidth="1.7" strokeLinecap="round"/>
+  </svg>
+);}
+function IcoMagic({c='var(--primary)',s=17}){return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <path d="M3 17L7 7l4 4 4-4 4 10" stroke={c} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+    <circle cx="19" cy="5" r="2" fill={c} opacity="0.6"/>
+    <circle cx="5" cy="4" r="1.3" fill={c} opacity="0.4"/>
+    <circle cx="12" cy="20" r="1.3" fill={c} opacity="0.5"/>
+  </svg>
+);}
+function IcoSunRise({s=13}){const c='#F59E0B';return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <path d="M2 18h20" stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
+    <path d="M8 18a4 4 0 018 0" stroke={c} strokeWidth="1.8" strokeLinecap="round" fill="none"/>
+    <path d="M12 10V7M7 12L5.5 10.5M17 12l1.5-1.5" stroke={c} strokeWidth="1.5" strokeLinecap="round"/>
+  </svg>
+);}
+function IcoSunFull({s=13}){const c='#F59E0B';return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <circle cx="12" cy="12" r="4" fill={c} opacity="0.9"/>
+    <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M16.9 16.9l1.5 1.5M18.4 5.6L17 7M7 17l-1.4 1.4" stroke={c} strokeWidth="1.6" strokeLinecap="round"/>
+  </svg>
+);}
+function IcoMoon({s=13}){const c='#818CF8';return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <path d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z" fill={c+'44'} stroke={c} strokeWidth="1.6"/>
+  </svg>
+);}
+function IcoClock({s=13}){const c='#A78BFA';return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <circle cx="12" cy="12" r="9" fill={c+'22'} stroke={c} strokeWidth="1.6"/>
+    <path d="M12 7v5l3 2" stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);}
+function IcoPrioHigh({s=12}){return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <path d="M12 3L21 20H3z" fill="#FEE2E2" stroke="#F87171" strokeWidth="1.6" strokeLinejoin="round"/>
+    <path d="M12 10v4M12 17v.5" stroke="#F87171" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);}
+function IcoPrioMed({s=12}){return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <circle cx="12" cy="12" r="9" fill="#FEF9C3" stroke="#FBBF24" strokeWidth="1.6"/>
+    <path d="M8 12h8M8 9h8M8 15h5" stroke="#FBBF24" strokeWidth="1.7" strokeLinecap="round"/>
+  </svg>
+);}
+function IcoPrioLow({s=12}){return(
+  <svg width={s} height={s} viewBox="0 0 24 24" fill="none" style={IS}>
+    <circle cx="12" cy="12" r="9" fill="#DCFCE7" stroke="#4ADE80" strokeWidth="1.6"/>
+    <path d="M12 8v6M9 12l3 3 3-3" stroke="#4ADE80" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);}
+function EmptyIllustTasks(){const c='#A78BFA';return(
+  <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+    <rect width="72" height="72" rx="20" fill="#EDE9FE"/>
+    <rect x="20" y="22" width="32" height="5" rx="2.5" fill={c} opacity="0.35"/>
+    <rect x="20" y="33" width="25" height="5" rx="2.5" fill={c} opacity="0.6"/>
+    <rect x="20" y="44" width="28" height="5" rx="2.5" fill={c} opacity="0.25"/>
+    <rect x="10" y="22" width="6" height="6" rx="2" fill={c} opacity="0.6"/>
+    <rect x="10" y="33" width="6" height="6" rx="2" fill={c}/>
+    <rect x="10" y="44" width="6" height="6" rx="2" fill={c} opacity="0.4"/>
+  </svg>
+);}
+function EmptyIllustFixed(){const c='#A78BFA';return(
+  <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+    <rect width="72" height="72" rx="20" fill="#EDE9FE"/>
+    <rect x="10" y="24" width="52" height="38" rx="6" fill="white" opacity="0.5" stroke={c} strokeWidth="1.5"/>
+    <path d="M10 34h52" stroke={c} strokeWidth="1.3" opacity="0.4"/>
+    <rect x="24" y="14" width="6" height="14" rx="3" fill={c} opacity="0.65"/>
+    <rect x="42" y="14" width="6" height="14" rx="3" fill={c} opacity="0.65"/>
+    <circle cx="22" cy="46" r="4" fill={c} opacity="0.45"/>
+    <circle cx="36" cy="46" r="4" fill={c} opacity="0.7"/>
+    <circle cx="50" cy="46" r="4" fill={c} opacity="0.3"/>
+  </svg>
+);}
+function EmptyIllustStats(){const c='#A78BFA';return(
+  <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+    <rect width="72" height="72" rx="20" fill="#EDE9FE"/>
+    <rect x="12" y="48" width="12" height="16" rx="3" fill={c} opacity="0.4"/>
+    <rect x="30" y="36" width="12" height="28" rx="3" fill={c} opacity="0.7"/>
+    <rect x="48" y="26" width="12" height="38" rx="3" fill={c} opacity="0.35"/>
+    <path d="M14 42 L36 30 L54 22" stroke={c} strokeWidth="2" strokeLinecap="round" opacity="0.5"/>
+    <circle cx="14" cy="42" r="2.5" fill={c} opacity="0.6"/>
+    <circle cx="36" cy="30" r="2.5" fill={c} opacity="0.8"/>
+    <circle cx="54" cy="22" r="2.5" fill={c} opacity="0.5"/>
+  </svg>
+);}
+
+// ===== CONSTANTS =====
+const SK = 'sukima_v2';
+const PH = 72;             // px per hour
+const TS = 360;            // 6:00
+const TE = 1440;           // 24:00
+const TH = ((TE-TS)/60)*PH;
+const DOW = ['日','月','火','水','木','金','土'];
+const ALL_DAYS = [0,1,2,3,4,5,6];
+const WEEKDAYS = [1,2,3,4,5];
+
+const t2px = m => ((m-TS)/60)*PH;
+const fmt  = m => `${String(Math.floor(m/60)%24).padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
+const parse= s => { const[h,m]=s.split(':').map(Number); return h*60+(m||0); };
+const fmtDur=(a,b)=>a===b?`${a}分`:`${a}〜${b}分`;
+const toStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const today = () => toStr(new Date());
+
+const CAT={
+  '生活':'#A5B4FC','食事':'#FDBA74','準備':'#F9A8D4','移動':'#5EEAD4',
+  '勉強':'#FDE68A','趣味':'#BEF264','健康':'#86EFAC','家事':'#BAE6FD',
+  '休息':'#E9D5FF','その他':'#CBD5E1',
+};
+const CATS=Object.keys(CAT);
+
+const DICT={
+  'お風呂':{min:20,max:40,cat:'生活'},'入浴':{min:20,max:40,cat:'生活'},
+  'シャワー':{min:10,max:20,cat:'生活'},'メイク':{min:15,max:30,cat:'準備'},
+  '化粧':{min:15,max:30,cat:'準備'},'スキンケア':{min:5,max:15,cat:'準備'},
+  'ヘアセット':{min:10,max:20,cat:'準備'},'着替え':{min:5,max:15,cat:'準備'},
+  '朝食':{min:10,max:20,cat:'食事'},'昼食':{min:20,max:45,cat:'食事'},
+  '夕食':{min:20,max:45,cat:'食事'},'朝ごはん':{min:10,max:20,cat:'食事'},
+  '昼ごはん':{min:20,max:45,cat:'食事'},'夕ごはん':{min:20,max:45,cat:'食事'},
+  '通学':{min:20,max:60,cat:'移動'},'通勤':{min:20,max:60,cat:'移動'},
+  '課題':{min:30,max:120,cat:'勉強'},'レポート':{min:60,max:180,cat:'勉強'},
+  '勉強':{min:30,max:90,cat:'勉強'},'英語':{min:20,max:60,cat:'勉強'},
+  '読書':{min:20,max:60,cat:'趣味'},'運動':{min:20,max:60,cat:'健康'},
+  'ジム':{min:45,max:90,cat:'健康'},'散歩':{min:15,max:30,cat:'健康'},
+  'ストレッチ':{min:10,max:20,cat:'健康'},'ヨガ':{min:20,max:45,cat:'健康'},
+  '洗濯':{min:5,max:10,cat:'家事'},'掃除':{min:15,max:45,cat:'家事'},
+  '料理':{min:20,max:60,cat:'家事'},'歯磨き':{min:3,max:5,cat:'生活'},
+  '昼寝':{min:15,max:30,cat:'休息'},'休憩':{min:10,max:20,cat:'休息'},
+  '就活':{min:30,max:90,cat:'勉強'},'大学院':{min:60,max:180,cat:'勉強'},
+  '写真':{min:20,max:60,cat:'趣味'},'授業':{min:60,max:90,cat:'勉強'},
+  'バイト':{min:180,max:360,cat:'その他'},'ゼミ':{min:60,max:120,cat:'勉強'},
+};
+const getSug=name=>{for(const[k,v]of Object.entries(DICT)){if(name.includes(k))return v;}return null;};
+
+// ===== STORAGE =====
+function defaults(){
+  return {
+    fixedBlocks:[
+      {id:1,name:'朝食', startTime:420,endTime:450, category:'食事',days:ALL_DAYS},
+      {id:2,name:'通学', startTime:480,endTime:540, category:'移動',days:WEEKDAYS},
+      {id:3,name:'午前授業',startTime:540,endTime:720,category:'勉強',days:[1,3,5]},
+      {id:4,name:'昼食', startTime:720,endTime:780, category:'食事',days:ALL_DAYS},
+      {id:5,name:'午後授業',startTime:780,endTime:960,category:'勉強',days:[1,2,4]},
+      {id:6,name:'夕食', startTime:1080,endTime:1140,category:'食事',days:ALL_DAYS},
+    ],
+    tasks:[
+      {id:1,name:'英語の勉強',minDur:20,maxDur:30,priority:'high',  freq:'daily',  pref:'morning',  category:'勉強'},
+      {id:2,name:'ストレッチ',minDur:10,maxDur:15,priority:'medium',freq:'daily',  pref:'morning',  category:'健康'},
+      {id:3,name:'メイク',    minDur:15,maxDur:25,priority:'high',  freq:'daily',  pref:'morning',  category:'準備'},
+      {id:4,name:'部屋の掃除',minDur:20,maxDur:30,priority:'low',   freq:'weekly', pref:'anytime',  category:'家事'},
+      {id:5,name:'就活のES',  minDur:60,maxDur:120,priority:'high', freq:'once',   pref:'afternoon',category:'勉強'},
+    ],
+    events:[],
+    completions:{},
+    logs:[],
+    nextId:10,
+  };
+}
+function load(){
+  try{const r=localStorage.getItem(SK);if(r){const d=JSON.parse(r);
+    // migrate: add days to old fixed blocks
+    d.fixedBlocks=d.fixedBlocks.map(b=>({...b,days:b.days||ALL_DAYS}));
+    if(!d.completions)d.completions={};
+    if(!d.logs)d.logs=[];
+    return d;}}catch{}
+  return defaults();
+}
+const save=d=>localStorage.setItem(SK,JSON.stringify(d));
+
+// ===== ALGORITHMS =====
+function getFreeSlots(allBlocks){
+  const sorted=[...allBlocks].sort((a,b)=>a.startTime-b.startTime);
+  const slots=[];let cur=TS;
+  for(const b of sorted){
+    const s=Math.max(b.startTime,TS);
+    if(s>cur)slots.push({start:cur,end:s,dur:s-cur});
+    cur=Math.max(cur,Math.min(b.endTime,TE));
+  }
+  if(cur<TE)slots.push({start:cur,end:TE,dur:TE-cur});
+  return slots.filter(s=>s.dur>=10);
+}
+function suggestFor(slot,tasks){
+  const pm={morning:[360,720],afternoon:[720,1080],evening:[1080,1440],anytime:[360,1440]};
+  const po={high:0,medium:1,low:2};
+  return tasks
+    .filter(t=>t.minDur<=slot.dur)
+    .filter(t=>{const[a,b]=pm[t.pref]||[360,1440];return slot.start<b&&slot.end>a;})
+    .sort((a,b)=>po[a.priority]-po[b.priority])
+    .slice(0,4);
+}
+
+// ===== MONTH CALENDAR =====
+function MonthCalendar({events,onSelectDate,selectedDate}){
+  const now=new Date();
+  const[vm,setVm]=useState({y:now.getFullYear(),m:now.getMonth()});
+
+  const grid=useMemo(()=>{
+    const first=new Date(vm.y,vm.m,1);
+    const last=new Date(vm.y,vm.m+1,0);
+    const dow=first.getDay();
+    const cells=[];
+    for(let i=dow-1;i>=0;i--){
+      const d=new Date(vm.y,vm.m,0-i);cells.push({d,cur:false});
+    }
+    for(let i=1;i<=last.getDate();i++){
+      cells.push({d:new Date(vm.y,vm.m,i),cur:true});
+    }
+    while(cells.length<42){
+      const d=new Date(vm.y,vm.m+1,cells.length-dow-last.getDate()+1);
+      cells.push({d,cur:false});
+    }
+    return cells;
+  },[vm]);
+
+  const eventsByDate=useMemo(()=>{
+    const m={};
+    for(const e of events){
+      if(!m[e.date])m[e.date]=[];
+      m[e.date].push(e);
+    }
+    return m;
+  },[events]);
+
+  const todayStr=today();
+
+  const prev=()=>setVm(v=>v.m===0?{y:v.y-1,m:11}:{y:v.y,m:v.m-1});
+  const next=()=>setVm(v=>v.m===11?{y:v.y+1,m:0}:{y:v.y,m:v.m+1});
+
+  return(
+    <div>
+      <div className="cal-nav">
+        <button className="cal-nav-btn" onClick={prev}>‹</button>
+        <span className="cal-month">{vm.y}年{vm.m+1}月</span>
+        <button className="cal-nav-btn" onClick={next}>›</button>
+      </div>
+      <div className="cal-dow">
+        {DOW.map(d=><div key={d} className="cal-dow-cell">{d}</div>)}
+      </div>
+      <div className="cal-grid">
+        {grid.map(({d,cur},i)=>{
+          const ds=toStr(d);
+          const dow=d.getDay();
+          const isToday=ds===todayStr;
+          const isSel=ds===selectedDate;
+          const evs=eventsByDate[ds]||[];
+          return(
+            <div key={i}
+              className={`cal-cell${!cur?' other':''}${isToday?' today':''}${isSel&&!isToday?' selected':''}`}
+              onClick={()=>cur&&onSelectDate(ds)}
+            >
+              <div className={`cal-num${dow===0?' sun':dow===6?' sat':''}`}>{d.getDate()}</div>
+              {evs.slice(0,2).map((e,j)=>{
+                const c=CAT[e.category]||'#BDBDBD';
+                return(
+                  <div key={j} className="cal-ev" style={{background:c+'25',color:c}}>
+                    {e.name}
+                  </div>
+                );
+              })}
+              {evs.length>2&&<div className="cal-more">+{evs.length-2}</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ===== DAY VIEW =====
+function DayView({dateStr,data,onBack,onAddEvent,onOpenLog,onDelEvent}){
+  const d=new Date(dateStr+'T00:00:00');
+  const dow=d.getDay();
+  const isToday=dateStr===today();
+  const label=`${d.getMonth()+1}月${d.getDate()}日（${DOW[dow]}）`;
+
+  // Blocks for this day
+  const dayFixed=data.fixedBlocks.filter(b=>(b.days||ALL_DAYS).includes(dow));
+  const dayEvents=data.events.filter(e=>e.date===dateStr);
+  const allBlocks=[
+    ...dayFixed.map(b=>({...b,isFixed:true})),
+    ...dayEvents.map(e=>({...e,startTime:e.startTime,endTime:e.endTime,isEvent:true})),
+  ];
+  const slots=getFreeSlots(allBlocks);
+  const totalFree=slots.reduce((s,sl)=>s+sl.dur,0);
+  const fh=Math.floor(totalFree/60),fm=totalFree%60;
+  const hours=Array.from({length:19},(_,i)=>i+6);
+
+  // Current time line
+  const now=new Date();
+  const nowMin=now.getHours()*60+now.getMinutes();
+  const showNow=isToday&&nowMin>=TS&&nowMin<TE;
+
+  return(
+    <div>
+      <div className="day-header">
+        <button className="back-btn" onClick={onBack}>‹</button>
+        <span className="day-title">{label}</span>
+        <span className="day-badge">{fh>0?`${fh}h`:''}{fm>0?`${fm}m`:totalFree===0?'空きなし':''} 空き</span>
+      </div>
+
+      <CountdownBanner events={data.events}/>
+      <div className="summary-card">
+        <div className="sum-label">この日の空き時間</div>
+        <div className="sum-val">
+          {fh>0?`${fh}時間`:''}{fm>0?`${fm}分`:''}
+          <span className="sum-sub">{totalFree===0?'予定がぎっしり！':'自由に使えます'}</span>
+        </div>
+        <div className="slot-chips">
+          {slots.map((s,i)=>(
+            <span key={i} className="slot-chip">{fmt(s.start)}〜{fmt(s.end)}</span>
+          ))}
+          {slots.length===0&&<span className="slot-chip">空き時間なし</span>}
+        </div>
+      </div>
+
+      {/* Add event button */}
+      <button onClick={onAddEvent} style={{
+        width:'100%',background:'#fff',border:'2px dashed var(--border)',
+        borderRadius:'var(--rs)',padding:'10px',fontSize:'13px',
+        color:'var(--muted)',cursor:'pointer',marginBottom:'14px',fontFamily:'inherit'
+      }}>＋ この日に予定を追加</button>
+
+      {/* Timeline */}
+      <div className="tl-wrap">
+        <div className="tl-hours" style={{height:TH,position:'relative'}}>
+          {hours.map(h=>(
+            <div key={h} className="tl-hlabel" style={{top:t2px(h*60)}}>
+              {h<24?`${h}:00`:''}
+            </div>
+          ))}
+        </div>
+        <div className="tl-events" style={{height:TH}}>
+          {hours.map(h=>(
+            <div key={h} className={`tl-hline${h%3===0?' maj':''}`} style={{top:t2px(h*60)}}/>
+          ))}
+
+          {/* Now line */}
+          {showNow&&(
+            <div className="tl-now" style={{top:t2px(nowMin)}}/>
+          )}
+
+          {/* Free slots */}
+          {slots.map((sl,i)=>{
+            const ht=(sl.dur/60)*PH;
+            if(ht<14)return null;
+            const sugs=suggestFor(sl,data.tasks);
+            return(
+              <div key={i} className="free-slot" style={{top:t2px(sl.start),height:Math.max(ht,18)}}>
+                {ht>=22&&<div className="free-label" style={{display:'flex',alignItems:'center',gap:3}}><IcoSparkle s={9}/>空き {sl.dur}分</div>}
+                {ht>=42&&sugs.length>0&&(
+                  <div className="free-sugs">
+                    {sugs.map(t=>(
+                      <button key={t.id} className="free-chip" onClick={()=>onOpenLog(t,sl)}>{t.name}</button>
+                    ))}
+                  </div>
+                )}
+                {ht>=52&&(
+                  <button className="free-log-btn" onClick={()=>onOpenLog(null,sl)}>＋ 記録する</button>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Fixed blocks */}
+          {dayFixed.filter(b=>b.endTime>TS&&b.startTime<TE).map(b=>{
+            const c=CAT[b.category]||'#BDBDBD';
+            const s=Math.max(b.startTime,TS),e=Math.min(b.endTime,TE);
+            const ht=((e-s)/60)*PH;
+            return(
+              <div key={b.id} className="block" style={{
+                top:t2px(s),height:Math.max(ht,20),
+                background:c+'28',border:`2px solid ${c}`,
+              }}>
+                <div className="block-name" style={{color:c}}>{b.name}</div>
+                {ht>=32&&<div className="block-time" style={{color:c}}>{fmt(b.startTime)}〜{fmt(b.endTime)}</div>}
+              </div>
+            );
+          })}
+
+          {/* One-time events */}
+          {dayEvents.filter(e=>e.endTime>TS&&e.startTime<TE).map(e=>{
+            const c=CAT[e.category]||'#BDBDBD';
+            const s=Math.max(e.startTime,TS),en=Math.min(e.endTime,TE);
+            const ht=((en-s)/60)*PH;
+            return(
+              <div key={e.id} className="block" style={{
+                top:t2px(s),height:Math.max(ht,20),
+                background:c+'44',border:`2px solid ${c}`,
+                borderStyle:'solid',borderLeftWidth:'4px',
+              }}>
+                <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between'}}>
+                  <div className="block-name" style={{color:c,display:'flex',alignItems:'center',gap:3}}><IcoPin c={c} s={11}/>{e.name}</div>
+                  <button onClick={()=>onDelEvent(e.id)} style={{
+                    background:'none',border:'none',color:c,opacity:.7,cursor:'pointer',
+                    fontSize:'13px',lineHeight:1,padding:'0 0 0 4px',flexShrink:0
+                  }}>×</button>
+                </div>
+                {ht>=32&&<div className="block-time" style={{color:c}}>{fmt(e.startTime)}〜{fmt(e.endTime)}</div>}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ===== TASKS SCREEN =====
+function TasksScreen({tasks,onDel,onEdit,completions,onToggle}){
+  const PI={high:<IcoPrioHigh s={11}/>,medium:<IcoPrioMed s={11}/>,low:<IcoPrioLow s={11}/>};
+  const PL={high:'高',medium:'中',low:'低'};
+  const PC={high:'#F9A8D4',medium:'#FDE68A',low:'#86EFAC'};
+  const FL={daily:'毎日',weekly:'週1〜',once:'1回'};
+  const TL={morning:'朝',afternoon:'昼',evening:'夜',anytime:'いつでも'};
+  const todayStr=today();
+  const doneIds=completions[todayStr]||[];
+  if(!tasks.length)return(
+    <div className="empty"><div className="empty-icon"><EmptyIllustTasks/></div>
+    <div className="empty-text">タスクがまだありません。<br/>＋ボタンから追加してみよう！</div></div>
+  );
+  return(
+    <div className="list">
+      {tasks.map(t=>{
+        const done=doneIds.includes(t.id);
+        return(
+          <div className={`tcard${done?' done-card':''}`} key={t.id}>
+            <button className={`check-box${done?' done':''}`} onClick={()=>onToggle(t.id,todayStr)} title="完了">
+              {done?'✓':''}
+            </button>
+            <div className="cdot" style={{background:CAT[t.category]||'#BDBDBD'}}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div className="tname" style={done?{textDecoration:'line-through',opacity:.6}:{}}>{t.name}</div>
+              <div className="tmeta"><IcoTimerSvg c="#C4B5FD" s={11}/> {fmtDur(t.minDur,t.maxDur)} · {FL[t.freq]} · {TL[t.pref]}</div>
+            </div>
+            <span className="pbadge" style={{background:PC[t.priority]+'20',color:PC[t.priority],display:'flex',alignItems:'center',gap:3}}>{PI[t.priority]}{PL[t.priority]}</span>
+            <button className="ebtn" onClick={()=>onEdit(t)}><PencilIcon size={26}/></button>
+            <button className="dbtn" onClick={()=>onDel(t.id)}>×</button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ===== FIXED SCREEN =====
+function FixedScreen({blocks,onDel,onEdit}){
+  if(!blocks.length)return(
+    <div className="empty"><div className="empty-icon"><EmptyIllustFixed/></div>
+    <div className="empty-text">固定予定がありません。<br/>＋ボタンから追加してみよう！</div></div>
+  );
+  return(
+    <div className="list">
+      {[...blocks].sort((a,b)=>a.startTime-b.startTime).map(b=>{
+        const days=b.days||ALL_DAYS;
+        return(
+          <div className="tcard" key={b.id}>
+            <div className="cdot" style={{background:CAT[b.category]||'#BDBDBD'}}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div className="tname">{b.name}</div>
+              <div className="tmeta">{fmt(b.startTime)}〜{fmt(b.endTime)}（{b.endTime-b.startTime}分）</div>
+              <div className="dow-badges">
+                {DOW.map((d,i)=>(
+                  <span key={i} className="dow-badge" style={{
+                    background:days.includes(i)?(i===0?'#FEE2E2':i===6?'#DBEAFE':'var(--pl)'):'#F5F5F7',
+                    color:days.includes(i)?(i===0?'#F87171':i===6?'#60A5FA':'var(--primary)'):'#CBD5E1',
+                  }}>{d}</span>
+                ))}
+              </div>
+            </div>
+            <button className="ebtn" onClick={()=>onEdit(b)}><PencilIcon size={26}/></button>
+            <button className="dbtn" onClick={()=>onDel(b.id)}>×</button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ===== ADD MODAL =====
+function AddModal({onClose,onAdd,onUpdate,defaultMode='task',defaultDate='',editItem=null}){
+  const isEdit=!!editItem;
+  const[mode,setMode]=useState(defaultMode);
+
+  // Task
+  const[name,setName]=useState(isEdit&&mode==='task'?editItem.name:'');
+  const[minD,setMinD]=useState(isEdit&&mode==='task'?editItem.minDur:20);
+  const[maxD,setMaxD]=useState(isEdit&&mode==='task'?editItem.maxDur:30);
+  const[pri,setPri]=useState(isEdit&&mode==='task'?editItem.priority:'medium');
+  const[freq,setFreq]=useState(isEdit&&mode==='task'?editItem.freq:'daily');
+  const[pref,setPref]=useState(isEdit&&mode==='task'?editItem.pref:'anytime');
+  const[cat,setCat]=useState(isEdit&&mode==='task'?editItem.category:'その他');
+  const[sug,setSug]=useState(null);
+
+  // Fixed
+  const[fname,setFname]=useState(isEdit&&mode==='fixed'?editItem.name:'');
+  const[fst,setFst]=useState(isEdit&&mode==='fixed'?fmt(editItem.startTime):'09:00');
+  const[fen,setFen]=useState(isEdit&&mode==='fixed'?fmt(editItem.endTime):'10:00');
+  const[fcat,setFcat]=useState(isEdit&&mode==='fixed'?editItem.category:'その他');
+  const[fdays,setFdays]=useState(isEdit&&mode==='fixed'?(editItem.days||[...WEEKDAYS]):[...WEEKDAYS]);
+
+  // Event
+  const[ename,setEname]=useState(isEdit&&mode==='event'?editItem.name:'');
+  const[edate,setEdate]=useState(isEdit&&mode==='event'?editItem.date:(defaultDate||today()));
+  const[est,setEst]=useState(isEdit&&mode==='event'?fmt(editItem.startTime):'10:00');
+  const[een,setEen]=useState(isEdit&&mode==='event'?fmt(editItem.endTime):'11:00');
+  const[ecat,setEcat]=useState(isEdit&&mode==='event'?editItem.category:'その他');
+  const[enote,setEnote]=useState(isEdit&&mode==='event'?(editItem.note||''):'');
+
+  const onNameCh=e=>{
+    const v=e.target.value;setName(v);
+    const s=getSug(v);if(s){setSug(s);setMinD(s.min);setMaxD(s.max);setCat(s.cat);}else setSug(null);
+  };
+  const onFnameCh=e=>{const v=e.target.value;setFname(v);const s=getSug(v);if(s)setFcat(s.cat);};
+
+  const toggleDay=i=>setFdays(prev=>prev.includes(i)?prev.filter(d=>d!==i):[...prev,i]);
+
+  const submit=()=>{
+    if(mode==='task'){
+      if(!name.trim())return;
+      const payload={type:'task',name:name.trim(),minDur:minD,maxDur:maxD,priority:pri,freq,pref,category:cat};
+      isEdit?onUpdate({...payload,id:editItem.id}):onAdd(payload);
+    }else if(mode==='fixed'){
+      if(!fname.trim())return;
+      const s=parse(fst),e=parse(fen);if(e<=s)return;
+      const payload={type:'fixed',name:fname.trim(),startTime:s,endTime:e,category:fcat,days:fdays};
+      isEdit?onUpdate({...payload,id:editItem.id}):onAdd(payload);
+    }else{
+      if(!ename.trim())return;
+      const s=parse(est),e=parse(een);if(e<=s)return;
+      const payload={type:'event',name:ename.trim(),date:edate,startTime:s,endTime:e,category:ecat,note:enote};
+      isEdit?onUpdate({...payload,id:editItem.id}):onAdd(payload);
+    }
+    onClose();
+  };
+
+  const Chip=({v,cur,set,label,style})=>(
+    <button className={`chip${cur===v?' on':''}`} style={style} onClick={()=>set(v)}>{label}</button>
+  );
+
+  return(
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="mtitle" style={{display:'flex',alignItems:'center',gap:7}}>{isEdit?<><PencilIcon size={22}/>編集する</>:<><IcoMagic s={20}/>追加する</>}</div>
+        {!isEdit&&(
+          <div className="tab-row">
+            <button className={`tabbtn${mode==='task'?' on':''}`} onClick={()=>setMode('task')}>タスク・習慣</button>
+            <button className={`tabbtn${mode==='fixed'?' on':''}`} onClick={()=>setMode('fixed')}>固定予定</button>
+            <button className={`tabbtn${mode==='event'?' on':''}`} onClick={()=>setMode('event')}>その日の予定</button>
+          </div>
+        )}
+
+        {mode==='task'&&(
+          <>
+            <div className="fg">
+              <label className="fl">タスク名</label>
+              <input className="fi" placeholder="例：英語の勉強、メイク、お風呂…" value={name} onChange={onNameCh}/>
+              {sug&&<div className="hint" style={{display:'flex',alignItems:'center',gap:5}}><IcoLamp s={14}/><span><strong>{sug.min}〜{sug.max}分</strong> くらいかな？ カテゴリ: {sug.cat}</span></div>}
+            </div>
+            <div className="form-row">
+              <div className="fg"><label className="fl">最短（分）</label>
+                <input className="fi fi-sm" type="number" min="1" max="480" value={minD} onChange={e=>setMinD(+e.target.value)}/></div>
+              <div className="fg"><label className="fl">最長（分）</label>
+                <input className="fi fi-sm" type="number" min="1" max="480" value={maxD} onChange={e=>setMaxD(+e.target.value)}/></div>
+            </div>
+            <div className="fg"><label className="fl">優先度</label><div className="chips">
+              {[['high',<><IcoPrioHigh s={12}/>高</>],['medium',<><IcoPrioMed s={12}/>中</>],['low',<><IcoPrioLow s={12}/>低</>]].map(([v,l])=>(
+                <Chip key={v} v={v} cur={pri} set={setPri} label={l}/>))}</div></div>
+            <div className="fg"><label className="fl">頻度</label><div className="chips">
+              {[['daily','毎日'],['weekly','週1〜'],['once','1回だけ']].map(([v,l])=>(
+                <Chip key={v} v={v} cur={freq} set={setFreq} label={l}/>))}</div></div>
+            <div className="fg"><label className="fl">やりたい時間帯</label><div className="chips">
+              {[['morning',<><IcoSunRise s={13}/>朝</>],['afternoon',<><IcoSunFull s={13}/>昼</>],['evening',<><IcoMoon s={13}/>夜</>],['anytime',<><IcoClock s={13}/>いつでも</>]].map(([v,l])=>(
+                <Chip key={v} v={v} cur={pref} set={setPref} label={l}/>))}</div></div>
+            <div className="fg"><label className="fl">カテゴリ</label><div className="chips">
+              {CATS.map(c=><Chip key={c} v={c} cur={cat} set={setCat} label={c}
+                style={cat===c?{borderColor:CAT[c],background:CAT[c]+'22',color:CAT[c]}:{}}/>)}</div></div>
+          </>
+        )}
+
+        {mode==='fixed'&&(
+          <>
+            <div className="fg">
+              <label className="fl">予定名</label>
+              <input className="fi" placeholder="例：授業、通学、バイト…" value={fname} onChange={onFnameCh}/>
+            </div>
+            <div className="form-row">
+              <div className="fg"><label className="fl">開始時刻</label>
+                <input className="fi fi-sm" type="time" value={fst} onChange={e=>setFst(e.target.value)}/></div>
+              <div className="fg"><label className="fl">終了時刻</label>
+                <input className="fi fi-sm" type="time" value={fen} onChange={e=>setFen(e.target.value)}/></div>
+            </div>
+            <div className="fg">
+              <label className="fl">繰り返す曜日</label>
+              <div className="dow-chips">
+                {DOW.map((d,i)=>(
+                  <button key={i}
+                    className={`dow-chip${fdays.includes(i)?' on':''}${i===0?' sun':i===6?' sat':''}`}
+                    onClick={()=>toggleDay(i)}>{d}</button>
+                ))}
+              </div>
+            </div>
+            <div className="fg"><label className="fl">カテゴリ</label><div className="chips">
+              {CATS.map(c=><Chip key={c} v={c} cur={fcat} set={setFcat} label={c}
+                style={fcat===c?{borderColor:CAT[c],background:CAT[c]+'22',color:CAT[c]}:{}}/>)}</div></div>
+          </>
+        )}
+
+        {mode==='event'&&(
+          <>
+            <div className="fg">
+              <label className="fl">予定名</label>
+              <input className="fi" placeholder="例：病院、友達と映画、ゼミ発表…" value={ename} onChange={e=>setEname(e.target.value)}/>
+            </div>
+            <div className="fg">
+              <label className="fl">日付</label>
+              <input className="fi fi-sm" type="date" value={edate} onChange={e=>setEdate(e.target.value)}/>
+            </div>
+            <div className="form-row">
+              <div className="fg"><label className="fl">開始時刻</label>
+                <input className="fi fi-sm" type="time" value={est} onChange={e=>setEst(e.target.value)}/></div>
+              <div className="fg"><label className="fl">終了時刻</label>
+                <input className="fi fi-sm" type="time" value={een} onChange={e=>setEen(e.target.value)}/></div>
+            </div>
+            <div className="fg"><label className="fl">カテゴリ</label><div className="chips">
+              {CATS.map(c=><Chip key={c} v={c} cur={ecat} set={setEcat} label={c}
+                style={ecat===c?{borderColor:CAT[c],background:CAT[c]+'22',color:CAT[c]}:{}}/>)}</div></div>
+            <div className="fg">
+              <label className="fl">メモ（任意）</label>
+              <input className="fi fi-sm" placeholder="場所・持ち物など" value={enote} onChange={e=>setEnote(e.target.value)}/>
+            </div>
+          </>
+        )}
+
+        <button className="btn-add" onClick={submit}>{isEdit?'更新する ✓':'追加する ✓'}</button>
+        <button className="btn-cancel" onClick={onClose}>キャンセル</button>
+      </div>
+    </div>
+  );
+}
+
+// ===== COUNTDOWN BANNER =====
+const EXAM_KEYS=['試験','テスト','発表','締切','提出','レポート','期末','中間','quiz','Quiz','exam'];
+function CountdownBanner({events}){
+  const now=new Date();now.setHours(0,0,0,0);
+  const upcoming=events
+    .map(e=>{const d=new Date(e.date+'T00:00:00');return{...e,days:Math.round((d-now)/(86400000))};})
+    .filter(e=>e.days>=0&&e.days<=60&&EXAM_KEYS.some(k=>e.name.includes(k)))
+    .sort((a,b)=>a.days-b.days);
+  if(!upcoming.length)return null;
+  const ev=upcoming[0];
+  const d=new Date(ev.date+'T00:00:00');
+  return(
+    <div className="countdown-card">
+      <div className="cd-icon"><IcoPin c="#D97706" s={28}/></div>
+      <div style={{flex:1,minWidth:0}}>
+        <div className="cd-name">{ev.name}</div>
+        <div className="cd-date">{d.getMonth()+1}月{d.getDate()}日（{DOW[d.getDay()]}）</div>
+      </div>
+      <div style={{textAlign:'center',flexShrink:0}}>
+        <div className="cd-days">{ev.days===0?'今日':ev.days}</div>
+        <div className="cd-unit">{ev.days===0?'！':'日後'}</div>
+      </div>
+    </div>
+  );
+}
+
+// ===== LOG MODAL =====
+function LogModal({onClose,onSave,tasks,dateStr,preTask,slotDur}){
+  const initDur=preTask?Math.round((preTask.minDur+preTask.maxDur)/2):(slotDur||30);
+  const[selId,setSelId]=useState(preTask?.id??null);
+  const[customName,setCustomName]=useState('');
+  const[customCat,setCustomCat]=useState('その他');
+  const[dur,setDur]=useState(initDur);
+  const isCustom=selId===null;
+  const selTask=tasks.find(t=>t.id===selId);
+
+  const addDur=n=>setDur(p=>Math.max(5,p+n));
+
+  const submit=()=>{
+    if(isCustom&&!customName.trim())return;
+    if(!isCustom&&!selTask)return;
+    onSave({
+      taskId:isCustom?null:selId,
+      name:isCustom?customName.trim():selTask.name,
+      duration:dur,
+      category:isCustom?customCat:selTask.category,
+      date:dateStr,
+    });
+    onClose();
+  };
+
+  const Chip=({v,cur,set,label,style})=>(
+    <button className={`chip${cur===v?' on':''}`} style={style} onClick={()=>set(v)}>{label}</button>
+  );
+
+  return(
+    <div className="overlay" onClick={onClose}>
+      <div className="modal" onClick={e=>e.stopPropagation()}>
+        <div className="mtitle" style={{display:'flex',alignItems:'center',gap:7}}><IcoTimerSvg s={20}/>何をしましたか？</div>
+
+        <div className="log-section">
+          <div className="log-section-title">タスクから選ぶ</div>
+          <div className="task-chips">
+            {tasks.map(t=>(
+              <button key={t.id} className={`task-chip${selId===t.id?' on':''}`} onClick={()=>setSelId(t.id)}>
+                <span className="task-chip-dot" style={{background:CAT[t.category]||'#CBD5E1'}}/>
+                {t.name}
+              </button>
+            ))}
+            <button className={`task-chip${isCustom?' on':''}`} onClick={()=>setSelId(null)}>
+              <PencilIcon size={16}/> その他
+            </button>
+          </div>
+        </div>
+
+        {isCustom&&(
+          <div className="log-section">
+            <div className="log-section-title">内容を入力</div>
+            <input className="fi" placeholder="例：自主学習、読書、散歩…" value={customName} onChange={e=>setCustomName(e.target.value)}/>
+            <div style={{marginTop:8}}><div className="chips">
+              {CATS.map(c=><Chip key={c} v={c} cur={customCat} set={setCustomCat} label={c}
+                style={customCat===c?{borderColor:CAT[c],background:CAT[c]+'22',color:CAT[c]}:{}}/>)}
+            </div></div>
+          </div>
+        )}
+
+        <div className="log-section">
+          <div className="log-section-title">何分やりましたか？</div>
+          <div className="dur-row">
+            <button className="dur-btn" onClick={()=>addDur(-5)}>－</button>
+            <div className="dur-num">{dur}</div>
+            <div className="dur-unit">分</div>
+            <button className="dur-btn" onClick={()=>addDur(+5)}>＋</button>
+          </div>
+        </div>
+
+        <button className="btn-add" onClick={submit}>記録する ✓</button>
+        <button className="btn-cancel" onClick={onClose}>キャンセル</button>
+      </div>
+    </div>
+  );
+}
+
+// ===== PENCIL ICON =====
+function PencilIcon({size=22}){
+  const c='#A78BFA';
+  return(
+    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="9" fill="#EDE9FE"/>
+      <path d="M20 8.5 L23.5 12 L13 22.5 L9 23 L9.5 19 Z" fill="#DDD6FE" stroke={c} strokeWidth="1.8" strokeLinejoin="round"/>
+      <path d="M18 10.5 L21.5 14" stroke={c} strokeWidth="1.8" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+// ===== STATS SCREEN =====
+function StatsScreen({data}){
+  const now=new Date();
+  const yr=now.getFullYear(),mo=now.getMonth()+1;
+  const monthStr=`${yr}-${String(mo).padStart(2,'0')}`;
+  const monthLabel=`${yr}年${mo}月`;
+
+  const taskMap=Object.fromEntries(data.tasks.map(t=>[t.id,t]));
+  const monthLogs=(data.logs||[]).filter(l=>l.date.startsWith(monthStr));
+  // also count completions that have no log entry (checked off without logging)
+  const allDates=Object.keys(data.completions||{}).filter(d=>d.startsWith(monthStr)).sort();
+  const loggedTaskDayKeys=new Set(monthLogs.filter(l=>l.taskId!=null).map(l=>`${l.date}_${l.taskId}`));
+
+  let totalDone=0,studyMin=0;
+  const catCounts={};
+  const doneDays=new Set();
+  const recentDone=[];
+
+  // From logs (most accurate — has real duration)
+  for(const l of monthLogs){
+    if(l.date)doneDays.add(l.date);
+    totalDone++;
+    studyMin+=l.category==='勉強'?l.duration:0;
+    catCounts[l.category]=(catCounts[l.category]||0)+1;
+    recentDone.push({date:l.date,name:l.name,dur:l.duration,cat:l.category});
+  }
+  // From completions without a log (checkbox-only)
+  for(const date of allDates){
+    for(const id of (data.completions[date]||[])){
+      if(loggedTaskDayKeys.has(`${date}_${id}`))continue;
+      const t=taskMap[id];if(!t)continue;
+      doneDays.add(date);totalDone++;
+      const dur=Math.round((t.minDur+t.maxDur)/2);
+      studyMin+=t.category==='勉強'?dur:0;
+      catCounts[t.category]=(catCounts[t.category]||0)+1;
+      recentDone.push({date,name:t.name,dur,cat:t.category});
+    }
+  }
+
+  // Streak: consecutive days with ≥1 completion (today counts even if not yet done)
+  let streak=0;
+  const sd=new Date();
+  if(!(data.completions[toStr(sd)]||[]).length) sd.setDate(sd.getDate()-1);
+  while((data.completions[toStr(sd)]||[]).length>0){streak++;sd.setDate(sd.getDate()-1);}
+
+  const studyH=Math.floor(studyMin/60),studyM=studyMin%60;
+  const maxCat=Math.max(1,...Object.values(catCounts));
+  const sortedCats=Object.entries(catCounts).sort((a,b)=>b[1]-a[1]);
+  const recent=[...recentDone].reverse().slice(0,15);
+
+  return(
+    <div>
+      <div className="stats-hero">
+        <div className="stats-hero-label">{monthLabel}の達成タスク</div>
+        <div className="stats-hero-row">
+          <div className="stats-hero-num">{totalDone}</div>
+          <div className="stats-hero-unit">件完了</div>
+        </div>
+        <div className="stats-hero-sub">{doneDays.size}日間コツコツ積み上げた</div>
+      </div>
+
+      <div className="stats-cards">
+        <div className="stat-card">
+          <div className="stat-card-icon" style={{background:'#FEF9C3'}}>
+            <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+              <path d="M16 4 L20 12 L28 13 L22 19 L23.5 28 L16 24 L8.5 28 L10 19 L4 13 L12 12Z" fill="#FDE68A" stroke="#FBBF24" strokeWidth="1.8" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div className="stat-card-val">{studyH>0?`${studyH}h`:''}{studyM>0?`${studyM}m`:studyMin===0?'0m':''}</div>
+          <div className="stat-card-label">勉強時間の合計</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-icon" style={{background:'#FEE2E2'}}>
+            <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+              <path d="M16 6 C16 6 8 10 8 18 C8 22.4 11.6 26 16 26 C20.4 26 24 22.4 24 18 C24 10 16 6 16 6Z" fill="#FCA5A5" stroke="#F87171" strokeWidth="1.6"/>
+              <path d="M16 18 L16 12" stroke="#fff" strokeWidth="1.8" strokeLinecap="round"/>
+            </svg>
+          </div>
+          <div className="stat-card-val">{streak}</div>
+          <div className="stat-card-label">日連続達成</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-icon" style={{background:'#D1FAE5'}}>
+            <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+              <rect x="6" y="6" width="20" height="20" rx="5" fill="#A7F3D0" stroke="#34D399" strokeWidth="1.8"/>
+              <path d="M10 16 L14 20 L22 12" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div className="stat-card-val">{doneDays.size}</div>
+          <div className="stat-card-label">達成した日数</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-card-icon" style={{background:'#EDE9FE'}}>
+            <svg width="18" height="18" viewBox="0 0 32 32" fill="none">
+              <circle cx="16" cy="16" r="10" fill="#DDD6FE" stroke="#A78BFA" strokeWidth="1.8"/>
+              <path d="M16 10 L16 16 L20 19" stroke="#A78BFA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div className="stat-card-val">{totalDone>0?Math.round(studyMin/totalDone*10)/10:0}</div>
+          <div className="stat-card-label">平均集中時間(分)</div>
+        </div>
+      </div>
+
+      {sortedCats.length>0&&(
+        <>
+          <div className="section-title">カテゴリ別</div>
+          <div style={{background:'#fff',borderRadius:'var(--rs)',padding:'12px 14px',boxShadow:'var(--shadow)',marginBottom:14}}>
+            {sortedCats.map(([cat,cnt])=>(
+              <div className="cat-bar-row" key={cat}>
+                <div className="cat-bar-label" style={{color:CAT[cat]||'#CBD5E1'}}>{cat}</div>
+                <div className="cat-bar-bg">
+                  <div className="cat-bar-fill" style={{width:`${(cnt/maxCat)*100}%`,background:CAT[cat]||'#CBD5E1'}}/>
+                </div>
+                <div className="cat-bar-count">{cnt}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {recent.length>0&&(
+        <>
+          <div className="section-title">最近の完了タスク</div>
+          <div className="done-list">
+            {recent.map((r,i)=>{
+              const d=new Date(r.date+'T00:00:00');
+              return(
+                <div className="done-item" key={i}>
+                  <div className="done-item-date">{d.getMonth()+1}/{d.getDate()}</div>
+                  <div className="cdot" style={{background:CAT[r.cat]||'#CBD5E1',width:8,height:8,borderRadius:'50%',flexShrink:0}}/>
+                  <div className="done-item-name">{r.name}</div>
+                  <div className="done-item-dur">{r.dur}分</div>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {totalDone===0&&(
+        <div className="empty">
+          <div className="empty-icon"><EmptyIllustStats/></div>
+          <div className="empty-text">今月はまだ記録がありません。<br/>タスクを完了するとここに表示されるよ！</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ===== APP =====
+function App(){
+  const[data,setData]=useState(load);
+  const[tab,setTab]=useState('cal');
+  const[selDate,setSelDate]=useState(null);
+  const[showAdd,setShowAdd]=useState(false);
+  const[addMode,setAddMode]=useState('task');
+  const[addDate,setAddDate]=useState('');
+  const[editItem,setEditItem]=useState(null);
+  const[logModal,setLogModal]=useState(null); // {task,slot} or null
+
+  const mutate=useCallback(fn=>{
+    setData(prev=>{const next=fn(prev);save(next);return next;});
+  },[]);
+
+  const handleAdd=item=>{
+    mutate(prev=>{
+      const id=prev.nextId;
+      if(item.type==='task'){
+        const{type,...t}=item;
+        return{...prev,tasks:[...prev.tasks,{...t,id}],nextId:id+1};
+      }else if(item.type==='fixed'){
+        const{type,...b}=item;
+        return{...prev,fixedBlocks:[...prev.fixedBlocks,{...b,id}],nextId:id+1};
+      }else{
+        const{type,...e}=item;
+        return{...prev,events:[...prev.events,{...e,id}],nextId:id+1};
+      }
+    });
+  };
+
+  const handleUpdate=item=>{
+    mutate(prev=>{
+      if(item.type==='task'){
+        const{type,...t}=item;
+        return{...prev,tasks:prev.tasks.map(x=>x.id===t.id?{...x,...t}:x)};
+      }else if(item.type==='fixed'){
+        const{type,...b}=item;
+        return{...prev,fixedBlocks:prev.fixedBlocks.map(x=>x.id===b.id?{...x,...b}:x)};
+      }else{
+        const{type,...e}=item;
+        return{...prev,events:prev.events.map(x=>x.id===e.id?{...x,...e}:x)};
+      }
+    });
+  };
+
+  const delTask  =id=>mutate(p=>({...p,tasks:p.tasks.filter(t=>t.id!==id)}));
+  const delFixed =id=>mutate(p=>({...p,fixedBlocks:p.fixedBlocks.filter(b=>b.id!==id)}));
+  const delEvent =id=>mutate(p=>({...p,events:p.events.filter(e=>e.id!==id)}));
+
+  const toggleCompletion=(taskId,dateStr)=>{
+    mutate(prev=>{
+      const comp=prev.completions||{};
+      const dayList=comp[dateStr]||[];
+      const next=dayList.includes(taskId)?dayList.filter(id=>id!==taskId):[...dayList,taskId];
+      return{...prev,completions:{...comp,[dateStr]:next}};
+    });
+  };
+
+  const handleLog=entry=>{
+    mutate(prev=>{
+      const id=prev.nextId;
+      const newLog={...entry,id};
+      // mark completion if linked to a task
+      let comp=prev.completions||{};
+      if(entry.taskId!=null){
+        const day=comp[entry.date]||[];
+        if(!day.includes(entry.taskId))
+          comp={...comp,[entry.date]:[...day,entry.taskId]};
+      }
+      return{...prev,logs:[...prev.logs,newLog],completions:comp,nextId:id+1};
+    });
+  };
+
+  const openAdd=(mode,date='')=>{
+    setEditItem(null);setAddMode(mode);setAddDate(date);setShowAdd(true);
+  };
+  const openEdit=(item,mode)=>{
+    setEditItem(item);setAddMode(mode);setShowAdd(true);
+  };
+
+  // Header info
+  const todayStr=today();
+  const todayDow=new Date().getDay();
+  const todayFixed=data.fixedBlocks.filter(b=>(b.days||ALL_DAYS).includes(todayDow));
+  const todayFree=getFreeSlots([...todayFixed,...data.events.filter(e=>e.date===todayStr)]);
+  const tf=todayFree.reduce((s,sl)=>s+sl.dur,0);
+  const tfh=Math.floor(tf/60),tfm=tf%60;
+
+  const NavCal=({active})=>{const c=active?'#A78BFA':'#A09AB8';return(
+    <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+      <rect x="4" y="7" width="24" height="21" rx="5" fill={active?'#EDE9FE':'#F3F0FB'} stroke={c} strokeWidth="2"/>
+      <path d="M4 13h24" stroke={c} strokeWidth="1.5"/>
+      <rect x="10" y="3" width="3" height="7" rx="1.5" fill={c}/>
+      <rect x="19" y="3" width="3" height="7" rx="1.5" fill={c}/>
+      <circle cx="11" cy="20" r="2" fill={c} opacity="0.7"/>
+      <circle cx="16" cy="20" r="2" fill={c} opacity="0.7"/>
+      <circle cx="21" cy="20" r="2" fill={c} opacity="0.7"/>
+    </svg>
+  );};
+  const NavCheck=({active})=>{const c=active?'#A78BFA':'#A09AB8';return(
+    <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+      <rect x="4" y="6" width="24" height="20" rx="5" fill={active?'#EDE9FE':'#F3F0FB'} stroke={c} strokeWidth="2"/>
+      <path d="M10 16 L14 20 L22 12" stroke={c} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );};
+  const NavPin=({active})=>{const c=active?'#A78BFA':'#A09AB8';return(
+    <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+      <path d="M16 4 C11 4 7 8 7 13 C7 20 16 28 16 28 C16 28 25 20 25 13 C25 8 21 4 16 4Z" fill={active?'#EDE9FE':'#F3F0FB'} stroke={c} strokeWidth="2"/>
+      <circle cx="16" cy="13" r="4" fill={c} opacity="0.7"/>
+    </svg>
+  );};
+  const NavStats=({active})=>{const c=active?'#A78BFA':'#A09AB8';return(
+    <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+      <rect x="4" y="18" width="5" height="10" rx="2" fill={active?'#DDD6FE':'#EDE9FE'} stroke={c} strokeWidth="1.8"/>
+      <rect x="11" y="12" width="5" height="16" rx="2" fill={active?'#DDD6FE':'#EDE9FE'} stroke={c} strokeWidth="1.8"/>
+      <rect x="18" y="6" width="5" height="22" rx="2" fill={active?'#DDD6FE':'#EDE9FE'} stroke={c} strokeWidth="1.8"/>
+      <path d="M6.5 15 L13.5 9 L20.5 5" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.6"/>
+    </svg>
+  );};
+  const tabInfo=[
+    {id:'cal',   NavIcon:NavCal,  label:'カレンダー'},
+    {id:'tasks', NavIcon:NavCheck,label:'タスク'},
+    {id:'fixed', NavIcon:NavPin,  label:'固定予定'},
+    {id:'stats', NavIcon:NavStats,label:'記録'},
+  ];
+
+  const fabModeMap={cal:'event',tasks:'task',fixed:'fixed'};
+
+  return(
+    <div className="app">
+      <div className="hdr">
+        <div className="hdr-row">
+          <div>
+            <div className="hdr-title">
+              <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="17" r="11" fill="rgba(255,255,255,0.35)" stroke="white" strokeWidth="2"/>
+                <path d="M16 11 L16 17 L20 20" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 5 L14 8 M22 5 L18 8" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+              </svg>
+              スキマ
+            </div>
+            <div className="hdr-sub">
+              {selDate
+                ? (() => { const d=new Date(selDate+'T00:00:00');
+                    return `${d.getMonth()+1}月${d.getDate()}日（${DOW[d.getDay()]}）`;})()
+                : new Date().toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'short'})
+              }
+            </div>
+          </div>
+          <div className="hdr-badge">
+            今日の空き {tfh>0?`${tfh}h`:''}{tfm>0?`${tfm}m`:tf===0?'0m':''}
+          </div>
+        </div>
+      </div>
+
+      <div className="screen">
+        {tab==='cal'&&(
+          selDate
+            ? <DayView
+                dateStr={selDate}
+                data={data}
+                onBack={()=>setSelDate(null)}
+                onAddEvent={()=>openAdd('event',selDate)}
+                onOpenLog={(task,slot)=>setLogModal({task,slot})}
+                onDelEvent={delEvent}
+              />
+            : <>
+                <CountdownBanner events={data.events}/>
+                <MonthCalendar
+                  events={data.events}
+                  selectedDate={selDate}
+                  onSelectDate={d=>{setSelDate(d);}}
+                />
+              </>
+        )}
+        {tab==='tasks'&&<TasksScreen tasks={data.tasks} onDel={delTask} onEdit={t=>openEdit(t,'task')} completions={data.completions||{}} onToggle={toggleCompletion}/>}
+        {tab==='fixed'&&<FixedScreen blocks={data.fixedBlocks} onDel={delFixed} onEdit={b=>openEdit(b,'fixed')}/>}
+        {tab==='stats'&&<StatsScreen data={data}/>}
+      </div>
+
+      {tab!=='stats'&&<button className="fab" onClick={()=>openAdd(fabModeMap[tab]||'task',selDate||'')}>＋</button>}
+
+      <nav className="bnav">
+        {tabInfo.map(n=>(
+          <button key={n.id} className={`ni${tab===n.id?' on':''}`}
+            onClick={()=>{setTab(n.id);if(n.id!=='cal')setSelDate(null);}}>
+            <span className="ni-icon"><n.NavIcon active={tab===n.id}/></span>{n.label}
+          </button>
+        ))}
+      </nav>
+
+      {logModal&&(
+        <LogModal
+          onClose={()=>setLogModal(null)}
+          onSave={handleLog}
+          tasks={data.tasks}
+          dateStr={selDate||today()}
+          preTask={logModal.task}
+          slotDur={logModal.slot?.dur}
+        />
+      )}
+      {showAdd&&(
+        <AddModal
+          onClose={()=>{setShowAdd(false);setEditItem(null);}}
+          onAdd={handleAdd}
+          onUpdate={handleUpdate}
+          defaultMode={addMode}
+          defaultDate={addDate}
+          editItem={editItem}
+        />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
